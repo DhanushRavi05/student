@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-slate-800/80 gap-3">
+    <div>
+      <h2 class="text-xl sm:text-2xl font-extrabold tracking-tight text-white">Intervention Tracking & Counseling Board</h2>
+      <p class="text-xs text-slate-400 mt-0.5">Structured remedial workflows, faculty advisor counseling logs & student turnaround status</p>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <span class="text-xs text-slate-400 font-mono px-3 py-1 bg-slate-900 border border-slate-800 rounded-lg">
+        Tracking <strong class="text-cyan-400">{{ interventions|length }}</strong> Active Cases
+      </span>
+    </div>
+  </div>
+
+  <!-- Status Metric Cards -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="obsidian-card p-4 border-l-4 border-l-amber-400 flex items-center justify-between">
+      <div>
+        <span class="text-xs font-bold text-slate-400 uppercase">Scheduled / Pending</span>
+        <h3 class="text-2xl font-extrabold text-amber-400 font-mono mt-1">
+          {{ interventions|selectattr('status', 'equalto', 'Scheduled')|list|length }}
+        </h3>
+        <p class="text-[11px] text-slate-500">Awaiting faculty counseling session</p>
+      </div>
+      <div class="p-3 bg-amber-500/10 text-amber-400 rounded-xl text-lg border border-amber-500/20">⏳</div>
+    </div>
+
+    <div class="obsidian-card p-4 border-l-4 border-l-cyan-400 flex items-center justify-between">
+      <div>
+        <span class="text-xs font-bold text-slate-400 uppercase">In Progress</span>
+        <h3 class="text-2xl font-extrabold text-cyan-400 font-mono mt-1">
+          {{ interventions|selectattr('status', 'equalto', 'In Progress')|list|length }}
+        </h3>
+        <p class="text-[11px] text-slate-500">Active remedial coaching in session</p>
+      </div>
+      <div class="p-3 bg-cyan-500/10 text-cyan-400 rounded-xl text-lg border border-cyan-500/20">🔄</div>
+    </div>
+
+    <div class="obsidian-card p-4 border-l-4 border-l-emerald-400 flex items-center justify-between">
+      <div>
+        <span class="text-xs font-bold text-slate-400 uppercase">Completed / Resolved</span>
+        <h3 class="text-2xl font-extrabold text-emerald-400 font-mono mt-1">
+          {{ interventions|selectattr('status', 'equalto', 'Completed')|list|length }}
+        </h3>
+        <p class="text-[11px] text-slate-500">Measurable turnaround verified</p>
+      </div>
+      <div class="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl text-lg border border-emerald-500/20">✅</div>
+    </div>
+  </div>
+
+  <!-- Interventions Table -->
+  <div class="obsidian-card overflow-hidden">
+    <div class="p-4 bg-slate-900/90 border-b border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-white">Active Mentoring Cases</h3>
+      </div>
+      
+      <!-- Filter Tabs -->
+      <div class="flex items-center gap-1.5 text-xs">
+        <button onclick="filterInterventions('all')" class="status-tab px-3 py-1.5 rounded-lg font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40" data-status="all">All</button>
+        <button onclick="filterInterventions('Scheduled')" class="status-tab px-3 py-1.5 rounded-lg font-semibold bg-slate-800/80 text-slate-300 border border-slate-700 hover:bg-slate-700" data-status="Scheduled">Scheduled</button>
+        <button onclick="filterInterventions('In Progress')" class="status-tab px-3 py-1.5 rounded-lg font-semibold bg-slate-800/80 text-slate-300 border border-slate-700 hover:bg-slate-700" data-status="In Progress">In Progress</button>
+        <button onclick="filterInterventions('Completed')" class="status-tab px-3 py-1.5 rounded-lg font-semibold bg-slate-800/80 text-slate-300 border border-slate-700 hover:bg-slate-700" data-status="Completed">Completed</button>
+      </div>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full obsidian-table text-left">
+        <thead>
+          <tr>
+            <th>Student Details</th>
+            <th>Intervention Strategy</th>
+            <th>Assigned Category</th>
+            <th>Assigned Faculty Guide</th>
+            <th>Target Date</th>
+            <th>Current Status</th>
+            <th class="text-right">Action</th>
+          </tr>
+        </thead>
+        <tbody id="intervention-tbody">
+          {% for item in interventions %}
+          <tr class="intervention-row" data-status="{{ item.status }}">
+            <td>
+              <div class="font-bold text-white">{{ item.student_name }}</div>
+              <div class="font-mono text-xs text-slate-400">{{ item.reg_no }} ({{ item.department }})</div>
+            </td>
+            <td>
+              <div class="font-semibold text-slate-200 text-xs">{{ item.title }}</div>
+              <p class="text-[11px] text-slate-400 line-clamp-1 mt-0.5">{{ item.action_plan }}</p>
+            </td>
+            <td>
+              <span class="px-2 py-0.5 rounded text-[11px] font-semibold 
+                {% if item.intervention_type == 'Parent Intimation' %}badge-neon-rose
+                {% elif item.intervention_type == 'Academic Remedial' %}badge-neon-cyan
+                {% elif item.intervention_type == 'Attendance Warning' %}badge-neon-amber
+                {% elif item.intervention_type == 'Counselor Referral' %}badge-neon-purple
+                {% else %}bg-slate-800 text-slate-300 border border-slate-700{% endif %}">
+                {{ item.intervention_type }}
+              </span>
+            </td>
+            <td class="text-xs text-slate-300">
+              {{ item.assigned_faculty }}
+            </td>
+            <td class="font-mono text-xs text-slate-400">
+              {{ item.target_date or 'Immediate' }}
+            </td>
+            <td>
+              <select onchange="updateInterventionStatus({{ item.id }}, this.value)" class="px-2 py-1 bg-slate-900 border rounded-lg text-xs font-bold outline-none 
+                {% if item.status == 'Completed' %}text-emerald-400 border-emerald-500/40
+                {% elif item.status == 'In Progress' %}text-cyan-400 border-cyan-500/40
+                {% else %}text-amber-400 border-amber-500/40{% endif %}">
+                <option value="Scheduled" {% if item.status == 'Scheduled' %}selected{% endif %}>Scheduled</option>
+                <option value="In Progress" {% if item.status == 'In Progress' %}selected{% endif %}>In Progress</option>
+                <option value="Completed" {% if item.status == 'Completed' %}selected{% endif %}>Completed</option>
+              </select>
+            </td>
+            <td class="text-right">
+              <button onclick="viewStudent360({{ item.student_id }})" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-semibold text-xs transition border border-slate-700">
+                360° Profile
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function filterInterventions(status) {
+    const tabs = document.querySelectorAll('.status-tab');
+    tabs.forEach(tab => {
+      if (tab.dataset.status === status) {
+        tab.className = 'status-tab px-3 py-1.5 rounded-lg font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40';
+      } else {
+        tab.className = 'status-tab px-3 py-1.5 rounded-lg font-semibold bg-slate-800/80 text-slate-300 border border-slate-700 hover:bg-slate-700';
+      }
+    });
+
+    const rows = document.querySelectorAll('.intervention-row');
+    rows.forEach(r => {
+      if (status === 'all' || r.dataset.status === status) {
+        r.style.display = '';
+      } else {
+        r.style.display = 'none';
+      }
+    });
+  }
+</script>
+{% endblock %}

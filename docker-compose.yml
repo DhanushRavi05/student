@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: edubehavior_college_portal
+    ports:
+      - "5000:5000"
+    environment:
+      - SECRET_KEY=college_secret_key_production_2026
+      - PORT=5000
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

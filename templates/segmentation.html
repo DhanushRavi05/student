@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- Header -->
+  <div class="flex flex-col md:flex-row items-start md:items-center justify-between pb-4 border-b border-slate-800/80 gap-4">
+    <div>
+      <h2 class="text-xl sm:text-2xl font-extrabold tracking-tight text-white">Machine Learning Behavioral Segmentation Lab</h2>
+      <p class="text-xs text-slate-400 mt-0.5">Unsupervised K-Means clustering ($k=5$), PCA 2D latent projection & centroid archetype extraction</p>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2 px-3.5 py-1.5 bg-indigo-500/10 border border-indigo-500/30 rounded-xl text-xs font-mono text-indigo-300">
+        <span class="text-slate-400">Silhouette Coefficient:</span>
+        <strong class="text-cyan-400 font-bold font-mono">{{ cluster_stats.silhouette_score }}</strong>
+      </div>
+      <button onclick="triggerRetrainPipeline()" class="px-4 py-2 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold rounded-xl text-xs transition shadow-[0_0_15px_rgba(6,182,212,0.3)] flex items-center gap-1.5">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+        Re-cluster Cohort
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Grid: PCA 2D Scatter Plot & Cluster Legend -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- Interactive PCA Scatter Canvas -->
+    <div class="obsidian-card p-6 lg:col-span-2 flex flex-col justify-between">
+      <div>
+        <div class="flex justify-between items-center mb-1">
+          <h3 class="text-base font-bold text-white tracking-wide">Principal Component Analysis (2D Latent Behavioral Map)</h3>
+          <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-cyan-400 border border-slate-700">
+            PCA Variance: PC1 ({{ cluster_stats.pca_explained_variance[0] }}%) | PC2 ({{ cluster_stats.pca_explained_variance[1] }}%)
+          </span>
+        </div>
+        <p class="text-xs text-slate-400 mb-4">
+          Each scatter node represents a student. Click any node directly on the canvas to open their 360° diagnostic profile!
+        </p>
+      </div>
+
+      <div class="h-[420px] relative bg-slate-950/60 rounded-xl p-3 border border-slate-800/80">
+        <canvas id="pca-scatter-plot"></canvas>
+      </div>
+
+      <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+        <span class="flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+          Interactive hover reveals student roll no & risk score.
+        </span>
+        <span class="font-mono text-cyan-400">Pipeline: StandardScaler ➔ KMeans(k=5) ➔ PCA(n=2)</span>
+      </div>
+    </div>
+
+    <!-- Cluster Archetypes Breakdown -->
+    <div class="space-y-3.5">
+      <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Archetype Profiles & Policy Mandate</h3>
+      
+      {% for key, meta in cluster_meta.items() %}
+      <div class="obsidian-card p-4 border-l-4 hover:border-slate-500 transition" style="border-left-color: {{ meta.color }}">
+        <div class="flex items-center justify-between mb-1.5">
+          <h4 class="text-xs font-bold text-white">{{ meta.name }}</h4>
+          <span class="w-2.5 h-2.5 rounded-full shadow-[0_0_8px]" style="background-color: {{ meta.color }}; box-shadow: 0 0 8px {{ meta.color }};"></span>
+        </div>
+        <p class="text-[11px] text-slate-400 leading-snug">{{ meta.description }}</p>
+        
+        <div class="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+          <span class="font-semibold text-slate-500">Cohort Action:</span>
+          <a href="{{ url_for('students_view') }}?cluster={{ meta.name }}" class="font-bold text-cyan-400 hover:text-cyan-300 transition">
+            Filter Roster →
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+  </div>
+
+  <!-- Cluster Centroids Profiling Table -->
+  <div class="obsidian-card overflow-hidden">
+    <div class="p-4 bg-slate-900/90 border-b border-slate-800">
+      <h3 class="text-xs font-bold uppercase tracking-wider text-white">
+        Unscaled Feature Centroids Matrix (Archetype Signature Averages)
+      </h3>
+      <p class="text-[11px] text-slate-400">Mathematical centers of each behavioral cluster across primary continuous academic and behavioral touchpoints</p>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full obsidian-table text-left">
+        <thead>
+          <tr>
+            <th>Behavioral Archetype</th>
+            <th>Attendance %</th>
+            <th>Submission Delay</th>
+            <th>LMS Logins / Wk</th>
+            <th>Video Watch (Hrs)</th>
+            <th>Study Hours / Day</th>
+            <th>Stress Index (1-10)</th>
+            <th>CIA-1 Marks (/100)</th>
+            <th>Mean CGPA</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for label, vals in cluster_stats.centroids.items() %}
+          <tr>
+            <td class="font-bold text-white">
+              {{ label }}
+            </td>
+            <td>
+              <span class="font-bold font-mono {{ 'text-rose-400' if vals.attendance_pct < 75 else 'text-emerald-400' }}">
+                {{ vals.attendance_pct }}%
+              </span>
+            </td>
+            <td>
+              <span class="font-semibold font-mono {{ 'text-rose-400' if vals.assignment_delay_avg_hrs > 24 else 'text-slate-300' }}">
+                {{ '+' if vals.assignment_delay_avg_hrs > 0 else '' }}{{ vals.assignment_delay_avg_hrs }} hrs
+              </span>
+            </td>
+            <td class="font-mono text-slate-300">{{ vals.lms_logins_per_week }}</td>
+            <td class="font-mono text-slate-300">{{ vals.video_watch_hours }}h</td>
+            <td class="font-mono text-slate-300">{{ vals.study_hours_daily }}h</td>
+            <td>
+              <span class="font-semibold font-mono {{ 'text-rose-400' if vals.stress_index >= 7.5 else 'text-slate-300' }}">
+                {{ vals.stress_index }} / 10
+              </span>
+            </td>
+            <td class="font-bold text-white font-mono">{{ vals.cia_1_score }}/100</td>
+            <td class="font-mono text-xs font-bold text-cyan-400">{{ vals.current_cgpa }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const pointsData = {{ scatter_points | tojson }};
+    initPCAPlot('pca-scatter-plot', pointsData);
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-5">
+
+  <!-- Header & Toolbar -->
+  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-slate-800/80 gap-3">
+    <div>
+      <h2 class="text-xl sm:text-2xl font-extrabold tracking-tight text-white">Student Behavioral Registry & Roster</h2>
+      <p class="text-xs text-slate-400 mt-0.5">Live academic surveillance, continuous behavioral telemetry & risk classifications</p>
+    </div>
+    
+    <div class="flex items-center gap-2.5">
+      <a href="{{ url_for('upload_view') }}" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold transition border border-slate-700 flex items-center gap-1.5">
+        <span>📥</span> Ingest CSV
+      </a>
+      <a href="{{ url_for('export_students_csv') }}" class="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold transition shadow flex items-center gap-1.5">
+        <span>📤</span> Export Cohort CSV
+      </a>
+    </div>
+  </div>
+
+  <!-- Dynamic Filter Controls (Obsidian Card) -->
+  <div class="p-4 obsidian-card">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-xs">
+      
+      <!-- Search Input -->
+      <div>
+        <label class="block font-semibold text-slate-300 mb-1">Search Student / Roll Number</label>
+        <div class="relative">
+          <input type="text" id="roster-search" placeholder="Enter Roll No (e.g. 2024...) or Name" class="w-full pl-8 pr-3 py-2 bg-slate-900/90 border border-slate-700/80 rounded-xl outline-none focus:ring-2 focus:ring-cyan-500 text-slate-200 text-xs">
+          <svg class="w-4 h-4 text-slate-500 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        </div>
+      </div>
+
+      <!-- Department Filter -->
+      <div>
+        <label class="block font-semibold text-slate-300 mb-1">Academic Department</label>
+        <select id="filter-dept" class="w-full px-3 py-2 bg-slate-900/90 border border-slate-700/80 rounded-xl outline-none focus:ring-2 focus:ring-cyan-500 text-slate-200 text-xs">
+          <option value="">All Departments (All)</option>
+          <option value="CSE">Computer Science (CSE)</option>
+          <option value="AI&DS">Artificial Intelligence (AI&DS)</option>
+          <option value="IT">Information Technology (IT)</option>
+          <option value="ECE">Electronics & Communication (ECE)</option>
+          <option value="EEE">Electrical & Electronics (EEE)</option>
+          <option value="MECH">Mechanical Engineering (MECH)</option>
+        </select>
+      </div>
+
+      <!-- Risk Level Filter -->
+      <div>
+        <label class="block font-semibold text-slate-300 mb-1">Predicted Risk Level</label>
+        <select id="filter-risk" class="w-full px-3 py-2 bg-slate-900/90 border border-slate-700/80 rounded-xl outline-none focus:ring-2 focus:ring-cyan-500 text-slate-200 text-xs">
+          <option value="">All Risk Tiers</option>
+          <option value="Critical" {% if request.args.get('risk') == 'Critical' %}selected{% endif %}>Critical Debarment (Red)</option>
+          <option value="High">High Risk (Orange)</option>
+          <option value="Moderate">Moderate Concern (Yellow)</option>
+          <option value="Low">Low Risk / Safe (Green)</option>
+        </select>
+      </div>
+
+      <!-- Archetype Filter -->
+      <div>
+        <label class="block font-semibold text-slate-300 mb-1">Behavioral Archetype</label>
+        <select id="filter-cluster" class="w-full px-3 py-2 bg-slate-900/90 border border-slate-700/80 rounded-xl outline-none focus:ring-2 focus:ring-cyan-500 text-slate-200 text-xs">
+          <option value="">All Behavioral Clusters</option>
+          <option value="Self-Regulated High Achiever">Self-Regulated Achiever</option>
+          <option value="High-Potential Procrastinator">High-Potential Procrastinator</option>
+          <option value="Disengaged / At-Risk Learner">Disengaged / At-Risk</option>
+          <option value="Passive Spectator">Passive Spectator</option>
+          <option value="Burnout / Overwhelmed Struggler">Burnout / Struggling</option>
+        </select>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Student Table (Edge-to-Edge Fluid) -->
+  <div class="obsidian-card overflow-hidden">
+    <div class="p-3.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between text-xs text-slate-400">
+      <span class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+        Displaying <strong id="student-count-display" class="text-white">{{ students|length }}</strong> Enrolled Students
+      </span>
+      <span class="text-[11px] text-slate-500 font-mono">* Click row or 360° for deep behavioral telemetry</span>
+    </div>
+
+    <div class="overflow-x-auto max-h-[64vh]">
+      <table id="roster-table" class="w-full obsidian-table text-left">
+        <thead class="sticky top-0 z-10">
+          <tr>
+            <th>Roll No & Student Name</th>
+            <th>Dept</th>
+            <th>Attendance %</th>
+            <th>Digital LMS Activity</th>
+            <th>Assignment Timeliness</th>
+            <th>CIA Marks / CGPA</th>
+            <th>Behavioral Archetype</th>
+            <th>Risk Level</th>
+            <th class="text-right">Action Protocol</th>
+          </tr>
+        </thead>
+        <tbody id="roster-tbody">
+          {% for s in students %}
+          <tr class="student-row" 
+              data-name="{{ s.name|lower }}" 
+              data-regno="{{ s.reg_no|lower }}" 
+              data-dept="{{ s.department }}" 
+              data-risk="{{ s.cluster.risk_level }}" 
+              data-cluster="{{ s.cluster.cluster_label }}">
+            <td>
+              <div class="font-bold text-white">{{ s.name }}</div>
+              <div class="font-mono text-xs text-slate-400">{{ s.reg_no }}</div>
+            </td>
+            <td>
+              <span class="px-2 py-0.5 bg-slate-800/80 font-semibold text-xs rounded text-slate-300 border border-slate-700">
+                {{ s.department }} ({{ s.section }})
+              </span>
+            </td>
+            <td>
+              <div class="flex items-center gap-1.5">
+                <span class="font-bold font-mono {{ 'text-rose-400' if s.behavior.attendance_pct < 75 else 'text-emerald-400' }}">
+                  {{ s.behavior.attendance_pct }}%
+                </span>
+                {% if s.behavior.attendance_pct < 75 %}
+                <span class="text-[10px] text-rose-400 font-bold" title="Statutory Shortage">⚠️</span>
+                {% endif %}
+              </div>
+              <div class="w-16 bg-slate-800 h-1 rounded-full mt-1">
+                <div class="{{ 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.6)]' if s.behavior.attendance_pct < 75 else 'bg-emerald-500' }} h-1 rounded-full" style="width: {{ s.behavior.attendance_pct }}%"></div>
+              </div>
+            </td>
+            <td>
+              <div class="text-xs font-semibold text-slate-200">{{ s.behavior.lms_logins_per_week }} logins/wk</div>
+              <div class="text-[10px] text-slate-400">{{ s.behavior.video_watch_hours }}h video watch</div>
+            </td>
+            <td>
+              {% if s.behavior.assignment_delay_avg_hrs > 0 %}
+              <span class="font-bold text-amber-400 font-mono">+{{ s.behavior.assignment_delay_avg_hrs }} hrs late</span>
+              {% else %}
+              <span class="font-semibold text-emerald-400 font-mono">{{ s.behavior.assignment_delay_avg_hrs }} hrs early</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="font-bold text-white font-mono">{{ s.academics.internal_avg }}/100</div>
+              <div class="text-[10px] text-slate-400">CGPA: {{ s.academics.current_cgpa }} ({{ s.academics.arrears_count }} arr)</div>
+            </td>
+            <td>
+              <span class="px-2.5 py-1 rounded-md text-xs font-bold border" 
+                    style="background-color: {{ s.cluster.cluster_color }}18; color: {{ s.cluster.cluster_color }}; border-color: {{ s.cluster.cluster_color }}44;">
+                {{ s.cluster.cluster_label }}
+              </span>
+            </td>
+            <td>
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider
+                {% if s.cluster.risk_level == 'Critical' %}badge-neon-rose
+                {% elif s.cluster.risk_level == 'High' %}badge-neon-amber
+                {% elif s.cluster.risk_level == 'Moderate' %}badge-neon-amber
+                {% else %}badge-neon-emerald{% endif %}">
+                {{ s.cluster.risk_level }} ({{ s.cluster.risk_score }}%)
+              </span>
+            </td>
+            <td class="text-right space-x-1.5 whitespace-nowrap">
+              <button onclick="viewStudent360({{ s.id }})" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-lg text-xs transition border border-slate-700" title="View 360 Diagnostic">
+                🔍 360°
+              </button>
+              <button onclick="generateParentNotice({{ s.id }})" class="px-2.5 py-1 bg-indigo-950 hover:bg-indigo-900 text-indigo-300 border border-indigo-700/60 font-semibold rounded-lg text-xs transition" title="Generate Official Notice">
+                📄 Letter
+              </button>
+              <button onclick="openNewInterventionModal({{ s.id }}, '{{ s.name }}', '{{ s.reg_no }}')" class="px-2.5 py-1 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-lg text-xs transition shadow" title="Log Intervention">
+                🎯 Intervene
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Roster Filter Engine
+  const searchInput = document.getElementById('roster-search');
+  const deptSelect = document.getElementById('filter-dept');
+  const riskSelect = document.getElementById('filter-risk');
+  const clusterSelect = document.getElementById('filter-cluster');
+  const rows = document.querySelectorAll('.student-row');
+  const countDisplay = document.getElementById('student-count-display');
+
+  function filterRoster() {
+    const q = searchInput.value.toLowerCase().trim();
+    const dept = deptSelect.value;
+    const risk = riskSelect.value;
+    const cluster = clusterSelect.value;
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+      const name = row.dataset.name;
+      const regno = row.dataset.regno;
+      const rDept = row.dataset.dept;
+      const rRisk = row.dataset.risk;
+      const rCluster = row.dataset.cluster;
+
+      const matchesSearch = !q || name.includes(q) || regno.includes(q);
+      const matchesDept = !dept || rDept === dept;
+      const matchesRisk = !risk || rRisk === risk;
+      const matchesCluster = !cluster || rCluster === cluster;
+
+      if (matchesSearch && matchesDept && matchesRisk && matchesCluster) {
+        row.style.display = '';
+        visibleCount++;
+      } else {
+        row.style.display = 'none';
+      }
+    });
+
+    if (countDisplay) {
+      countDisplay.textContent = visibleCount;
+    }
+  }
+
+  [searchInput, deptSelect, riskSelect, clusterSelect].forEach(el => {
+    if (el) {
+      el.addEventListener('input', filterRoster);
+      el.addEventListener('change', filterRoster);
+    }
+  });
+
+  filterRoster();
+</script>
+{% endblock %}

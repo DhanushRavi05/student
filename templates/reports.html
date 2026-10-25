@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- Action Header -->
+  <div class="no-print flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-slate-800/80 gap-3">
+    <div>
+      <h2 class="text-xl sm:text-2xl font-extrabold tracking-tight text-white">Institutional Reports & Parent Notices</h2>
+      <p class="text-xs text-slate-400 mt-0.5">Formal academic progression audit, debarment hazard list & parent notification dossier</p>
+    </div>
+
+    <div class="flex items-center gap-2.5">
+      <button onclick="window.print()" class="px-4 py-2 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+        <span>🖨️</span> Print Official Dossier
+      </button>
+      <a href="{{ url_for('export_students_csv') }}" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-2">
+        <span>📥</span> Export Cohort CSV
+      </a>
+    </div>
+  </div>
+
+  <!-- Printable Academic Dossier Document -->
+  <div class="p-8 sm:p-12 printable-document space-y-8 bg-white text-slate-900 rounded-2xl shadow-xl border border-slate-200">
+    
+    <!-- Institutional Document Header -->
+    <div class="text-center border-b-2 border-slate-900 pb-5">
+      <div class="flex justify-center mb-3">
+        <div class="w-16 h-16">
+          <img src="{{ url_for('static', filename='img/college_seal.svg') }}" alt="Seal" class="w-full h-full">
+        </div>
+      </div>
+      <h1 class="text-2xl font-bold text-slate-950 uppercase tracking-wider">
+        {{ config.COLLEGE_NAME }}
+      </h1>
+      <p class="text-xs text-slate-700 font-semibold tracking-wide">
+        {{ config.INSTITUTION_TAGLINE }}
+      </p>
+      <p class="text-[11px] text-slate-500 font-mono mt-1">
+        PLATFORM CODE: {{ config.COLLEGE_CODE }} | HIGHER EDUCATION LEARNING ANALYTICS & STUDENT PROGRESSION
+      </p>
+      <div class="inline-block mt-3 px-4 py-1 bg-slate-100 border border-slate-300 rounded text-xs font-bold uppercase tracking-widest text-slate-900">
+        COMPREHENSIVE STUDENT LEARNING BEHAVIOR & INTERVENTION DOSSIER — {{ config.ACADEMIC_YEAR }}
+      </div>
+    </div>
+
+    <!-- Metadata Grid -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs">
+      <div>
+        <span class="text-slate-500 block">Assessment Cycle:</span>
+        <strong class="text-slate-900">Continuous Assessment (CIA)</strong>
+      </div>
+      <div>
+        <span class="text-slate-500 block">Semester Term:</span>
+        <strong class="text-slate-900">{{ config.CURRENT_SEMESTER }}</strong>
+      </div>
+      <div>
+        <span class="text-slate-500 block">Total Cohort Monitored:</span>
+        <strong class="text-slate-900">{{ total_students }} Students</strong>
+      </div>
+      <div>
+        <span class="text-slate-500 block">ML Segmentation Model:</span>
+        <strong class="text-slate-900">K-Means (k=5) + PCA</strong>
+      </div>
+    </div>
+
+    <!-- Section 1: Departmental Executive Summary Table -->
+    <div class="space-y-3">
+      <h3 class="text-sm font-bold text-slate-900 uppercase border-l-4 border-cyan-500 pl-2">
+        1. Departmental Performance & Risk Audit
+      </h3>
+      <div class="overflow-x-auto">
+        <table class="w-full border border-slate-300 text-xs text-left">
+          <thead class="bg-slate-100 border-b border-slate-300 font-bold text-slate-700">
+            <tr>
+              <th class="p-2 border-r border-slate-300">Department</th>
+              <th class="p-2 border-r border-slate-300">Enrolled</th>
+              <th class="p-2 border-r border-slate-300">Mean Attendance (%)</th>
+              <th class="p-2 border-r border-slate-300">Mean CIA (/100)</th>
+              <th class="p-2 border-r border-slate-300">Critical At-Risk</th>
+              <th class="p-2">Recommended Academic Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for dept, stats in dept_summary.items() %}
+            <tr class="border-b border-slate-200">
+              <td class="p-2 border-r border-slate-300 font-bold">{{ dept }}</td>
+              <td class="p-2 border-r border-slate-300 font-mono">{{ stats.count }}</td>
+              <td class="p-2 border-r border-slate-300 font-semibold font-mono {{ 'text-rose-700' if stats.avg_attendance < 75 else 'text-emerald-700' }}">
+                {{ stats.avg_attendance }}%
+              </td>
+              <td class="p-2 border-r border-slate-300 font-semibold font-mono">{{ stats.avg_cia }}/100</td>
+              <td class="p-2 border-r border-slate-300 font-bold text-rose-700 font-mono">{{ stats.critical_count }}</td>
+              <td class="p-2 text-slate-600">
+                {% if stats.critical_count > 5 %}
+                Mandatory remedial coaching & parent intimation dispatch
+                {% else %}
+                Routine academic monitoring & mentor reviews
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Section 2: Behavioral Archetype Distribution -->
+    <div class="space-y-3">
+      <h3 class="text-sm font-bold text-slate-900 uppercase border-l-4 border-indigo-500 pl-2">
+        2. Behavioral Segmentation Distribution & Strategic Policy
+      </h3>
+      <div class="overflow-x-auto">
+        <table class="w-full border border-slate-300 text-xs text-left">
+          <thead class="bg-slate-100 border-b border-slate-300 font-bold text-slate-700">
+            <tr>
+              <th class="p-2 border-r border-slate-300">Cluster Archetype</th>
+              <th class="p-2 border-r border-slate-300">Core Behavioral Signature</th>
+              <th class="p-2 border-r border-slate-300">Headcount</th>
+              <th class="p-2">Institutional Protocol Mandate</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for key, meta in cluster_meta.items() %}
+            <tr class="border-b border-slate-200">
+              <td class="p-2 border-r border-slate-300 font-bold text-slate-900">
+                <span class="inline-block w-2.5 h-2.5 rounded-full mr-1.5" style="background-color: {{ meta.color }}"></span>
+                {{ meta.name }}
+              </td>
+              <td class="p-2 border-r border-slate-300 text-slate-600">{{ meta.description }}</td>
+              <td class="p-2 border-r border-slate-300 font-bold font-mono">{{ cluster_counts.get(meta.name, 0) }}</td>
+              <td class="p-2 text-slate-700">
+                {% if 'Achiever' in meta.name %}
+                Honors fast-track, research mentorship, peer tutoring leadership
+                {% elif 'Procrastinator' in meta.name %}
+                Staggered micro-deadlines, portal push notifications, time coaching
+                {% elif 'At-Risk' in meta.name %}
+                Urgent Remedial Batch, Biometric registry, Official Parent Notice
+                {% elif 'Passive' in meta.name %}
+                Interactive classroom cold-calling, lab mini-projects
+                {% else %}
+                Campus counselor consultation, study load adjustment
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Section 3: Debarment / High-Risk Warning List -->
+    <div class="space-y-3">
+      <h3 class="text-sm font-bold text-slate-900 uppercase border-l-4 border-rose-600 pl-2">
+        3. Statutory Debarment Hazard List (Attendance < 75% or Failure Risk > 70%)
+      </h3>
+      <div class="overflow-x-auto">
+        <table class="w-full border border-slate-300 text-xs text-left">
+          <thead class="bg-slate-100 border-b border-slate-300 font-bold text-slate-700">
+            <tr>
+              <th class="p-2 border-r border-slate-300">Roll Number</th>
+              <th class="p-2 border-r border-slate-300">Student Name</th>
+              <th class="p-2 border-r border-slate-300">Dept</th>
+              <th class="p-2 border-r border-slate-300">Attendance</th>
+              <th class="p-2 border-r border-slate-300">CIA Average</th>
+              <th class="p-2 border-r border-slate-300">Primary Risk Driver</th>
+              <th class="p-2">Assigned Faculty Mentor</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in critical_students %}
+            <tr class="border-b border-slate-200">
+              <td class="p-2 border-r border-slate-300 font-mono">{{ s.reg_no }}</td>
+              <td class="p-2 border-r border-slate-300 font-bold">{{ s.name }}</td>
+              <td class="p-2 border-r border-slate-300">{{ s.department }} ({{ s.section }})</td>
+              <td class="p-2 border-r border-slate-300 font-bold text-rose-700 font-mono">{{ s.behavior.attendance_pct }}%</td>
+              <td class="p-2 border-r border-slate-300 font-semibold font-mono">{{ s.academics.internal_avg }}/100</td>
+              <td class="p-2 border-r border-slate-300 text-rose-800 font-medium">{{ s.cluster.primary_driver }}</td>
+              <td class="p-2 text-slate-600">{{ s.mentor_name }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Official Authorization Signatures -->
+    <div class="grid grid-cols-3 gap-8 pt-16 text-center text-xs">
+      <div>
+        <div class="border-t-2 border-slate-700 pt-2 font-bold text-slate-900">Faculty Guide / Mentor</div>
+        <span class="text-slate-500">Department Academic Advisory Committee</span>
+      </div>
+      <div>
+        <div class="border-t-2 border-slate-700 pt-2 font-bold text-slate-900">Head of Department</div>
+        <span class="text-slate-500">Department of Computer Science & Engineering</span>
+      </div>
+      <div>
+        <div class="border-t-2 border-slate-700 pt-2 font-bold text-slate-900">Dean / Principal</div>
+        <span class="text-slate-500">Institutional Academic Review Board</span>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}
