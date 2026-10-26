@@ -1,10 +1,20 @@
 import os
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+DATA_DIR = os.path.join(BASE_DIR, "data")
+os.makedirs(DATA_DIR, exist_ok=True)
+
+raw_db_url = os.environ.get('DATABASE_URL')
+if raw_db_url:
+    if raw_db_url.startswith('postgres://'):
+        raw_db_url = raw_db_url.replace('postgres://', 'postgresql://', 1)
+    db_uri = raw_db_url
+else:
+    db_uri = f'sqlite:///{os.path.join(DATA_DIR, "college_analytics.db")}'
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'college_analytics_super_secret_key_2026_sret')
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or f'sqlite:///{os.path.join(BASE_DIR, "data", "college_analytics.db")}'
+    SQLALCHEMY_DATABASE_URI = db_uri
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # General Professional Academic Platform Branding

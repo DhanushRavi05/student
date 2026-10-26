@@ -252,30 +252,41 @@ def retrain_database_clusters():
 
 
 # Auto-setup on application startup
-with app.app_context():
-    db.create_all()
-    if Student.query.count() == 0:
-        print("Database empty. Generating baseline college student cohort...")
-        seed_database_with_cohort(350)
-    else:
-        # Train pipeline on startup
-        retrain_database_clusters()
-        
-    # Ensure course materials exist
-    if CourseMaterial.query.count() == 0:
-        print("Seeding course study materials repository...")
-        for mat in COURSE_MATERIALS_SEED:
-            db.session.add(CourseMaterial(**mat))
-        db.session.commit()
-        print(f"Seeded {len(COURSE_MATERIALS_SEED)} subject course materials.")
-        
-    # Ensure textbooks exist
-    if CourseBook.query.count() == 0:
-        print("Seeding academic coursebooks and full textbooks...")
-        for b in TEXTBOOKS_SEED:
-            db.session.add(CourseBook(**b))
-        db.session.commit()
-        print(f"Seeded {len(TEXTBOOKS_SEED)} full subject textbooks.")
+try:
+    with app.app_context():
+        db.create_all()
+        if Student.query.count() == 0:
+            print("Database empty. Generating baseline college student cohort...")
+            seed_database_with_cohort(350)
+        else:
+            try:
+                retrain_database_clusters()
+            except Exception as e:
+                print("Pipeline train note:", e)
+            
+        # Ensure course materials exist
+        try:
+            if CourseMaterial.query.count() == 0:
+                print("Seeding course study materials repository...")
+                for mat in COURSE_MATERIALS_SEED:
+                    db.session.add(CourseMaterial(**mat))
+                db.session.commit()
+                print(f"Seeded {len(COURSE_MATERIALS_SEED)} subject course materials.")
+        except Exception as e:
+            print("Materials init note:", e)
+            
+        # Ensure textbooks exist
+        try:
+            if CourseBook.query.count() == 0:
+                print("Seeding academic coursebooks and full textbooks...")
+                for b in TEXTBOOKS_SEED:
+                    db.session.add(CourseBook(**b))
+                db.session.commit()
+                print(f"Seeded {len(TEXTBOOKS_SEED)} full subject textbooks.")
+        except Exception as e:
+            print("Textbooks init note:", e)
+except Exception as e:
+    print("Application startup warning:", e)
 
 
 # =========================================================================
