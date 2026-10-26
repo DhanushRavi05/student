@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- Header Banner -->
+  <div class="p-6 md:p-8 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+    <div class="space-y-2 max-w-2xl">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold">
+        <span>🔥</span>
+        <span>ACADEMIC DISCIPLINE &amp; DAILY CURRICULUM ROADMAP</span>
+      </div>
+      <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
+        30-Day Autonomous Engineering Mastery Plan
+      </h1>
+      <p class="text-xs text-slate-600 leading-relaxed">
+        Structured daily micro-learning modules designed to build consistent study habits, prevent exam backlogs, and systematically master the complete semester syllabus.
+      </p>
+    </div>
+
+    <!-- Active Student Profile & Streak Card -->
+    <div class="flex items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+      <div class="text-center px-3 border-r border-slate-200">
+        <span class="text-2xl font-black text-amber-500 block" id="streak-counter">🔥 {{ streak_days }}</span>
+        <span class="text-[10px] font-bold text-slate-500 uppercase">Day Streak</span>
+      </div>
+      <div class="text-center px-3 border-r border-slate-200">
+        <span class="text-2xl font-black text-blue-600 block" id="completed-counter">{{ completed_count }}/{{ total_days }}</span>
+        <span class="text-[10px] font-bold text-slate-500 uppercase">Days Done</span>
+      </div>
+      <div class="text-center px-3">
+        <span class="text-2xl font-black text-emerald-600 block" id="progress-text">{{ progress_pct }}%</span>
+        <span class="text-[10px] font-bold text-slate-500 uppercase">Completion</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress Bar Barometer -->
+  <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2">
+    <div class="flex items-center justify-between text-xs">
+      <span class="font-bold text-slate-700">Overall 30-Day Curriculum Milestones</span>
+      <span class="font-mono font-bold text-blue-600" id="progress-bar-label">{{ completed_count }} of {{ total_days }} Days Completed ({{ progress_pct }}%)</span>
+    </div>
+    <div class="w-full h-3 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
+      <div id="progress-bar-fill" class="h-3 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 transition-all duration-300" style="width: {{ progress_pct }}%"></div>
+    </div>
+    <div class="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+      <span>Day 1: Foundations</span>
+      <span>Day 10: Process Concurrency</span>
+      <span>Day 20: ML Algorithms</span>
+      <span>Day 30: Capstone Mastery</span>
+    </div>
+  </div>
+
+  <!-- 30-Day Learning Modules Grid -->
+  <div class="space-y-3">
+    <div class="flex items-center justify-between text-xs text-slate-500 px-1">
+      <span class="font-bold uppercase tracking-wider text-slate-700">Course Day-by-Day Schedule</span>
+      <span>Click any module to toggle completion &amp; log study hours</span>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {% for task in tasks %}
+      <div id="task-card-{{ task.id }}" class="p-5 rounded-2xl border transition-all flex flex-col justify-between space-y-3 {{ 'bg-emerald-50/60 border-emerald-300 shadow-sm' if task.is_completed else 'bg-white border-slate-200 shadow-sm hover:border-slate-300' }}">
+        
+        <div class="space-y-2">
+          <!-- Top Row: Day Number & Subject Badge -->
+          <div class="flex items-center justify-between">
+            <span class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs {{ 'bg-emerald-600 text-white' if task.is_completed else 'bg-slate-100 text-slate-700 border border-slate-200' }}">
+              {{ task.day_number }}
+            </span>
+            <div class="flex items-center gap-1.5">
+              <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                {{ task.subject_code }}
+              </span>
+              <span class="text-[11px] text-slate-500 font-medium">
+                {{ task.duration_mins }} mins
+              </span>
+            </div>
+          </div>
+
+          <!-- Title -->
+          <h3 class="text-sm font-bold {{ 'text-emerald-950 line-through opacity-80' if task.is_completed else 'text-slate-900' }}">
+            {{ task.title }}
+          </h3>
+
+          <!-- Description -->
+          <p class="text-[11px] {{ 'text-emerald-800/80' if task.is_completed else 'text-slate-500' }} leading-relaxed line-clamp-3">
+            {{ task.description }}
+          </p>
+        </div>
+
+        <!-- Action / Toggle Button -->
+        <div class="pt-3 border-t {{ 'border-emerald-200' if task.is_completed else 'border-slate-100' }} flex items-center justify-between">
+          <span class="text-[10px] font-semibold {{ 'text-emerald-700' if task.is_completed else 'text-slate-400' }}">
+            {{ 'Completed ✅' if task.is_completed else 'Pending ⏳' }}
+          </span>
+          <button onclick="toggleDayTask({{ task.id }})" id="btn-toggle-{{ task.id }}" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm {{ 'bg-emerald-600 hover:bg-emerald-700 text-white' if task.is_completed else 'bg-blue-600 hover:bg-blue-700 text-white' }}">
+            {{ 'Mark Pending' if task.is_completed else 'Mark Done &rarr;' }}
+          </button>
+        </div>
+
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let completedCount = {{ completed_count }};
+  const totalDays = {{ total_days }};
+
+  async function toggleDayTask(taskId) {
+    try {
+      const res = await fetch('/api/daily-course/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task_id: taskId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        const card = document.getElementById(`task-card-${taskId}`);
+        const btn = document.getElementById(`btn-toggle-${taskId}`);
+        
+        if (data.is_completed) {
+          card.className = 'p-5 rounded-2xl border transition-all flex flex-col justify-between space-y-3 bg-emerald-50/60 border-emerald-300 shadow-sm';
+          btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white';
+          btn.innerText = 'Mark Pending';
+          completedCount++;
+        } else {
+          card.className = 'p-5 rounded-2xl border transition-all flex flex-col justify-between space-y-3 bg-white border-slate-200 shadow-sm hover:border-slate-300';
+          btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm bg-blue-600 hover:bg-blue-700 text-white';
+          btn.innerText = 'Mark Done →';
+          completedCount = Math.max(0, completedCount - 1);
+        }
+
+        const pct = Math.round((completedCount / totalDays) * 100);
+        document.getElementById('completed-counter').innerText = `${completedCount}/${totalDays}`;
+        document.getElementById('streak-counter').innerText = `🔥 ${completedCount}`;
+        document.getElementById('progress-text').innerText = `${pct}%`;
+        document.getElementById('progress-bar-fill').style.width = `${pct}%`;
+        document.getElementById('progress-bar-label').innerText = `${completedCount} of ${totalDays} Days Completed (${pct}%)`;
+      }
+    } catch (err) {
+      alert('Error updating status');
+    }
+  }
+</script>
+{% endblock %}

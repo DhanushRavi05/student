@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ page_title }} | EduTrack AI - Learning Analytics Platform</title>
+  <title>{{ page_title }} | EduTrack AI - Institutional ERP Portal</title>
   
   <!-- Tailwind CSS via CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -16,19 +16,17 @@
   
   <script>
     tailwind.config = {
-      darkMode: 'class',
       theme: {
         extend: {
           colors: {
-            obsidian: {
-              950: '#070b14',
-              900: '#0b0f19',
-              850: '#0f172a',
-              800: '#1e293b',
-              700: '#334155'
-            },
-            cyan: {
-              glow: '#06b6d4'
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a'
             }
           }
         }
@@ -36,117 +34,176 @@
     }
   </script>
 </head>
-<body class="bg-[#070B14] text-slate-100 flex h-screen w-screen overflow-hidden font-sans select-none antialiased">
+<body class="bg-slate-50 text-slate-800 flex h-screen w-screen overflow-hidden font-sans select-none antialiased">
 
   <!-- Toast Alerts Container -->
   <div id="toast-container" class="fixed top-5 right-6 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"></div>
 
-  <!-- ==================== MODERN FULL-HEIGHT LEFT SIDEBAR ==================== -->
-  <aside class="w-64 sm:w-72 bg-[#0B0F19]/95 border-r border-slate-800/80 flex flex-col justify-between flex-shrink-0 z-30 backdrop-blur-xl">
+  <!-- ==================== MODERN CLEAN WHITE LEFT SIDEBAR ==================== -->
+  <aside class="w-64 sm:w-72 bg-white border-r border-slate-200 flex flex-col justify-between flex-shrink-0 z-30 shadow-sm">
     
     <!-- Top Brand & Core Meta -->
-    <div>
+    <div class="overflow-y-auto">
       <!-- Brand Header -->
-      <div class="px-5 py-5 border-b border-slate-800/80 flex items-center gap-3.5">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-indigo-600 p-0.5 shadow-[0_0_15px_rgba(6,182,212,0.4)] flex-shrink-0">
-          <div class="w-full h-full bg-[#0B0F19] rounded-[10px] flex items-center justify-center">
-            <svg class="w-5 h-5 text-cyan-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-            </svg>
-          </div>
+      <div class="px-5 py-4 border-b border-slate-200 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 p-0.5 shadow-md flex-shrink-0 flex items-center justify-center text-white font-extrabold text-lg">
+          E
         </div>
         <div>
           <div class="flex items-center gap-1.5">
-            <h1 class="text-base font-extrabold tracking-wide text-white">EduTrack <span class="text-cyan-400">AI</span></h1>
-            <span class="text-[9px] px-1.5 py-0.5 font-bold uppercase rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">v2.4</span>
+            <h1 class="text-base font-extrabold tracking-tight text-slate-900">EduTrack <span class="text-blue-600">ERP</span></h1>
+            <span class="text-[9px] px-1.5 py-0.5 font-bold uppercase rounded bg-blue-50 text-blue-700 border border-blue-200">v2.4</span>
           </div>
-          <p class="text-[11px] text-slate-400 font-mono tracking-tight">Mini Project Capstone</p>
+          <p class="text-[11px] text-slate-500 font-medium">Autonomous Engineering Portal</p>
+        </div>
+      </div>
+
+      <!-- User Role Indicator Pill -->
+      <div class="px-3 pt-3">
+        <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
+              {{ '👨‍🎓' if current_user.role == 'student' else '👨‍🏫' }}
+            </div>
+            <div class="leading-tight">
+              <span class="text-xs font-bold text-slate-900 block truncate max-w-[130px]">{{ current_user.name }}</span>
+              <span class="text-[10px] text-slate-500 font-mono">{{ current_user.reg_no if current_user.role == 'student' else current_user.staff_code }}</span>
+            </div>
+          </div>
+          <a href="{{ url_for('logout') }}" title="Switch Role / Logout" class="px-2 py-1 rounded-md text-[10px] font-semibold bg-white border border-slate-300 text-slate-600 hover:text-red-600 hover:border-red-300 transition">
+            Exit
+          </a>
         </div>
       </div>
 
       <!-- Navigation Links -->
-      <nav class="px-3 py-4 space-y-1 text-xs font-semibold">
-        <a href="{{ url_for('dashboard') }}" class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition {{ 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.15)] font-bold' if request.endpoint == 'dashboard' else 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50' }}">
-          <div class="flex items-center gap-3">
+      <nav class="px-3 py-3 space-y-1 text-xs font-semibold">
+        
+        <div class="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          Core Academic Systems
+        </div>
+
+        <a href="{{ url_for('dashboard') }}" class="flex items-center justify-between px-3 py-2 rounded-xl transition {{ 'bg-blue-50 text-blue-700 border border-blue-200 font-bold' if request.endpoint == 'dashboard' else 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' }}">
+          <div class="flex items-center gap-2.5">
             <span class="text-base">📊</span>
             <span>Executive Dashboard</span>
           </div>
-          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">Home</span>
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white text-slate-500 border border-slate-200">Home</span>
         </a>
 
-        <a href="{{ url_for('students_view') }}" class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition {{ 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.15)] font-bold' if request.endpoint == 'students_view' else 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50' }}">
-          <div class="flex items-center gap-3">
+        <a href="{{ url_for('materials_view') }}" class="flex items-center justify-between px-3 py-2 rounded-xl transition {{ 'bg-blue-50 text-blue-700 border border-blue-200 font-bold' if request.endpoint == 'materials_view' else 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' }}">
+          <div class="flex items-center gap-2.5">
+            <span class="text-base">📚</span>
+            <span>E-Books &amp; Textbooks</span>
+          </div>
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">Books</span>
+        </a>
+
+        <a href="{{ url_for('daily_course') }}" class="flex items-center justify-between px-3 py-2 rounded-xl transition {{ 'bg-blue-50 text-blue-700 border border-blue-200 font-bold' if request.endpoint == 'daily_course' else 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' }}">
+          <div class="flex items-center gap-2.5">
+            <span class="text-base">📅</span>
+            <span>30-Day Daily Course</span>
+          </div>
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 font-bold">Daily</span>
+        </a>
+
+        <a href="{{ url_for('online_test_view') }}" class="flex items-center justify-between px-3 py-2 rounded-xl transition {{ 'bg-blue-50 text-blue-700 border border-blue-200 font-bold' if request.endpoint == 'online_test_view' else 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' }}">
+          <div class="flex items-center gap-2.5">
+            <span class="text-base">📝</span>
+            <span>Online Timed Exam</span>
+          </div>
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200 font-bold">15:00</span>
+        </a>
+
+        <a href="{{ url_for('classroom_view') }}" class="flex items-center justify-between px-3 py-2 rounded-xl transition {{ 'bg-blue-50 text-blue-700 border border-blue-200 font-bold' if request.endpoint == 'classroom_view' else 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' }}">
+          <div class="flex items-center gap-2.5">
+            <span class="text-base">🎥</span>
+            <span>Virtual Classroom</span>
+          </div>
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-red-50 text-red-700 border border-red-200 font-bold">Live</span>
+        </a>
+
+        <div class="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          Student Focused Tools
+        </div>
+
+        <a href="{{ url_for('study_room_view') }}" class="flex items-center justify-between px-3 py-2 rounded-xl transition {{ 'bg-blue-50 text-blue-700 border border-blue-200 font-bold' if request.endpoint == 'study_room_view' else 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' }}">
+          <div class="flex items-center gap-2.5">
+            <span class="text-base">📹</span>
+            <span>Proctored WebCam Room</span>
+          </div>
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 font-bold">WebCam</span>
+        </a>
+
+        <div class="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          Faculty &amp; ML Intelligence
+        </div>
+
+        <a href="{{ url_for('students_view') }}" class="flex items-center justify-between px-3 py-2 rounded-xl transition {{ 'bg-blue-50 text-blue-700 border border-blue-200 font-bold' if request.endpoint == 'students_view' else 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' }}">
+          <div class="flex items-center gap-2.5">
             <span class="text-base">👥</span>
             <span>Student Roster</span>
           </div>
-          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">350</span>
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">350</span>
         </a>
 
-        <a href="{{ url_for('materials_view') }}" class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition {{ 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.15)] font-bold' if request.endpoint == 'materials_view' else 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50' }}">
-          <div class="flex items-center gap-3">
-            <span class="text-base">📚</span>
-            <span>Study Materials Hub</span>
-          </div>
-          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">E-Library</span>
-        </a>
-
-        <a href="{{ url_for('segmentation_view') }}" class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition {{ 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.15)] font-bold' if request.endpoint == 'segmentation_view' else 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50' }}">
-          <div class="flex items-center gap-3">
+        <a href="{{ url_for('segmentation_view') }}" class="flex items-center justify-between px-3 py-2 rounded-xl transition {{ 'bg-blue-50 text-blue-700 border border-blue-200 font-bold' if request.endpoint == 'segmentation_view' else 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' }}">
+          <div class="flex items-center gap-2.5">
             <span class="text-base">🧬</span>
             <span>ML Segmentation Lab</span>
           </div>
-          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300">k=5</span>
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 font-bold">k=5</span>
         </a>
 
-        <a href="{{ url_for('interventions_view') }}" class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition {{ 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.15)] font-bold' if request.endpoint == 'interventions_view' else 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50' }}">
-          <div class="flex items-center gap-3">
+        <a href="{{ url_for('interventions_view') }}" class="flex items-center justify-between px-3 py-2 rounded-xl transition {{ 'bg-blue-50 text-blue-700 border border-blue-200 font-bold' if request.endpoint == 'interventions_view' else 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' }}">
+          <div class="flex items-center gap-2.5">
             <span class="text-base">🎯</span>
             <span>Intervention Board</span>
           </div>
-          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300">Action</span>
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 font-bold">Action</span>
         </a>
 
-        <a href="{{ url_for('simulator_view') }}" class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition {{ 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.15)] font-bold' if request.endpoint == 'simulator_view' else 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50' }}">
-          <div class="flex items-center gap-3">
+        <a href="{{ url_for('simulator_view') }}" class="flex items-center justify-between px-3 py-2 rounded-xl transition {{ 'bg-blue-50 text-blue-700 border border-blue-200 font-bold' if request.endpoint == 'simulator_view' else 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' }}">
+          <div class="flex items-center gap-2.5">
             <span class="text-base">🎛️</span>
             <span>What-If Simulator</span>
           </div>
-          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">Live</span>
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-bold">Live</span>
         </a>
 
-        <a href="{{ url_for('reports_view') }}" class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition {{ 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.15)] font-bold' if request.endpoint == 'reports_view' else 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50' }}">
-          <div class="flex items-center gap-3">
+        <a href="{{ url_for('reports_view') }}" class="flex items-center justify-between px-3 py-2 rounded-xl transition {{ 'bg-blue-50 text-blue-700 border border-blue-200 font-bold' if request.endpoint == 'reports_view' else 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' }}">
+          <div class="flex items-center gap-2.5">
             <span class="text-base">📑</span>
-            <span>Reports & Letters</span>
+            <span>Reports &amp; Letters</span>
           </div>
-          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">Print</span>
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">Print</span>
         </a>
 
-        <a href="{{ url_for('upload_view') }}" class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition {{ 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.15)] font-bold' if request.endpoint == 'upload_view' else 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50' }}">
-          <div class="flex items-center gap-3">
+        <a href="{{ url_for('upload_view') }}" class="flex items-center justify-between px-3 py-2 rounded-xl transition {{ 'bg-blue-50 text-blue-700 border border-blue-200 font-bold' if request.endpoint == 'upload_view' else 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' }}">
+          <div class="flex items-center gap-2.5">
             <span class="text-base">📤</span>
-            <span>CSV Ingestion Portal</span>
+            <span>CSV Ingestion</span>
           </div>
-          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">Import</span>
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">Import</span>
         </a>
       </nav>
     </div>
 
     <!-- Bottom System Status Card -->
-    <div class="p-3.5 m-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2 text-xs">
+    <div class="p-3.5 m-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5 text-xs">
       <div class="flex items-center justify-between">
-        <span class="text-[10px] font-mono text-slate-400">ML CLUSTER CORE</span>
-        <span class="flex items-center gap-1.5 text-[10px] font-bold text-emerald-400">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        <span class="text-[10px] font-mono text-slate-500 uppercase font-bold">ML CLUSTER CORE</span>
+        <span class="flex items-center gap-1 text-[10px] font-bold text-emerald-600">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
           ONLINE
         </span>
       </div>
-      <div class="text-[11px] text-slate-300">
-        K-Means (<span class="text-cyan-400 font-bold">k=5</span>) + PCA 2D
+      <div class="text-[11px] text-slate-700 font-medium">
+        K-Means (<strong class="text-blue-600">k=5</strong>) &bull; PCA 2D Engine
       </div>
-      <div class="pt-1.5 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-500 font-mono">
+      <div class="pt-1.5 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-500 font-mono">
         <span>Session: 2025-26</span>
-        <span class="text-slate-400">Cycle III/V</span>
+        <span>Semester III / V</span>
       </div>
     </div>
   </aside>
@@ -155,192 +212,195 @@
   <div class="flex-1 flex flex-col h-screen overflow-hidden">
     
     <!-- Top Fluid Command Header -->
-    <header class="h-16 px-6 sm:px-8 border-b border-slate-800/80 bg-[#0B0F19]/80 backdrop-blur-md flex items-center justify-between z-20 flex-shrink-0">
+    <header class="h-16 px-6 sm:px-8 border-b border-slate-200 bg-white flex items-center justify-between z-20 flex-shrink-0 shadow-sm">
       <div class="flex items-center gap-3">
-        <h2 class="text-base font-bold text-white tracking-wide">
+        <h2 class="text-base font-bold text-slate-900 tracking-tight">
           {{ page_title }}
         </h2>
-        <span class="text-xs text-slate-500 font-mono hidden sm:inline-block">/</span>
-        <span class="text-xs text-slate-400 hidden sm:inline-block">Higher Education Intelligence Dashboard</span>
+        <span class="text-xs text-slate-300 hidden sm:inline-block">/</span>
+        <span class="text-xs text-slate-500 hidden sm:inline-block">Autonomous Institution Academic Portal</span>
       </div>
 
       <div class="flex items-center gap-3">
         <!-- Live Clock -->
-        <div id="live-clock" class="text-xs font-mono text-slate-400 hidden md:block px-3 py-1.5 rounded-lg bg-slate-900/60 border border-slate-800">
+        <div id="live-clock" class="text-xs font-mono text-slate-600 hidden md:block px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200">
           --:--:--
         </div>
 
+        <!-- Role Indicator Link -->
+        <a href="{{ url_for('login') }}" class="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold transition border border-slate-200 flex items-center gap-1.5">
+          <span>{{ '👨‍🎓 Student Mode' if current_user.role == 'student' else '👨‍🏫 Staff Mode' }}</span>
+          <span class="text-blue-600 font-bold">&bull; Switch</span>
+        </a>
+
         <!-- Fullscreen Toggle Button -->
-        <button onclick="toggleFullScreen()" title="Toggle Full Display Mode" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold transition border border-slate-700/80 flex items-center gap-1.5 shadow">
-          <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <button onclick="toggleFullScreen()" title="Toggle Full Display Mode" class="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold transition border border-slate-200 flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
           </svg>
-          <span class="hidden sm:inline">Full Display</span>
+          <span class="hidden sm:inline">Fullscreen</span>
         </button>
 
         <!-- Re-cluster ML Model Button -->
-        <button id="btn-retrain-model" onclick="triggerRetrainPipeline()" class="px-3.5 py-1.5 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white rounded-lg text-xs font-bold transition shadow-[0_0_15px_rgba(6,182,212,0.3)] flex items-center gap-1.5">
+        <button id="btn-retrain-model" onclick="triggerRetrainPipeline()" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow-sm flex items-center gap-1.5">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
           </svg>
-          Re-train Pipeline
+          Re-train ML
         </button>
       </div>
     </header>
 
     <!-- Scrollable Fluid Body Canvas -->
-    <main class="flex-1 overflow-y-auto px-6 sm:px-8 py-6 space-y-6 tech-bg w-full">
+    <main class="flex-1 overflow-y-auto px-6 sm:px-8 py-6 space-y-6 campus-bg w-full">
       {% block content %}{% endblock %}
     </main>
 
   </div>
 
-  <!-- ==================== OBSIDIAN GLASS MODALS ==================== -->
+  <!-- ==================== CLEAN LIGHT MODALS ==================== -->
 
   <!-- 1. Student 360° Diagnostic Profile Modal -->
-  <div id="student-360-modal" class="fixed inset-0 z-50 bg-black/80 hidden items-center justify-center p-4 backdrop-blur-md">
-    <div class="bg-[#0B0F19] rounded-2xl shadow-2xl max-w-4xl w-full max-h-[92vh] overflow-y-auto border border-slate-700/80 flex flex-col text-slate-200">
+  <div id="student-360-modal" class="fixed inset-0 z-50 bg-slate-900/60 hidden items-center justify-center p-4 backdrop-blur-sm">
+    <div class="relative w-full max-w-4xl max-h-[90vh] bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-y-auto flex flex-col justify-between">
+      
       <!-- Modal Header -->
-      <div class="px-6 py-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-b border-slate-800 flex items-center justify-between">
-        <div class="flex items-center gap-3.5">
-          <div class="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/40 flex items-center justify-center text-cyan-400 font-extrabold text-lg shadow-[0_0_15px_rgba(6,182,212,0.2)]">
-            360°
+      <div class="bg-gradient-to-r from-slate-900 to-blue-900 p-6 text-white flex items-start justify-between rounded-t-2xl">
+        <div class="flex items-center gap-4">
+          <div class="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-2xl font-bold">
+            🎓
           </div>
           <div>
             <div class="flex items-center gap-2">
               <h3 id="modal-student-name" class="text-xl font-bold text-white">Student Name</h3>
-              <span id="modal-reg-no" class="font-mono text-xs px-2.5 py-0.5 bg-cyan-500/10 rounded-full border border-cyan-500/40 text-cyan-300 font-bold">2024...</span>
+              <span id="modal-reg-no" class="font-mono text-xs px-2.5 py-0.5 bg-blue-500/20 rounded-full border border-blue-400/40 text-blue-200 font-bold">2024...</span>
             </div>
-            <p id="modal-dept" class="text-xs text-slate-400 mt-0.5">CSE | Year 3</p>
-          </div>
-        </div>
-        
-        <div class="flex items-center gap-3">
-          <span id="modal-risk-badge" class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Risk</span>
-          <button onclick="closeModal('student-360-modal')" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-          </button>
-        </div>
-      </div>
-      
-      <!-- Modal Body -->
-      <div class="p-6 space-y-6 flex-grow">
-        <!-- Segment Banner -->
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-slate-900/60 border border-slate-800 rounded-xl gap-3">
-          <div>
-            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Assigned Behavioral Archetype:</span>
-            <div class="flex items-center gap-2 mt-1">
-              <span id="modal-cluster-badge" class="px-3 py-1 rounded-lg text-sm font-bold border">Cluster Name</span>
-            </div>
-          </div>
-          <div class="text-left sm:text-right">
-            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Primary Risk Driver:</span>
-            <p id="modal-driver" class="text-xs font-bold text-rose-400 mt-1">Driver description</p>
+            <p id="modal-dept" class="text-xs text-blue-100 mt-0.5">CSE | Year 3</p>
           </div>
         </div>
 
-        <!-- Two Columns: Radar Chart & Metrics -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <!-- Competency Radar -->
-          <div class="bg-slate-900/40 p-4 border border-slate-800 rounded-xl">
-            <h4 class="text-xs font-bold uppercase text-slate-400 mb-2">Behavioral & Academic Radar</h4>
-            <div class="h-64 relative">
+        <div class="flex items-center gap-2">
+          <span id="modal-risk-badge" class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-white/20 text-white">Risk</span>
+          <button onclick="closeModal('student-360-modal')" class="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition">
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 space-y-6 text-slate-800">
+        <!-- Cluster & Driver Card -->
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Behavioral Cohort Classification</span>
+            <div class="flex items-center gap-2 mt-1">
+              <span id="modal-cluster-badge" class="px-3 py-1 rounded-lg text-sm font-bold border bg-white">Cluster Name</span>
+            </div>
+          </div>
+          <div class="text-left sm:text-right">
+            <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Primary Risk Vector</span>
+            <p id="modal-driver" class="text-xs font-bold text-rose-600 mt-1">Driver description</p>
+          </div>
+        </div>
+
+        <!-- Radar & Metrics Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-6 p-4 rounded-xl bg-white border border-slate-200 flex flex-col items-center justify-center">
+            <h4 class="text-xs font-bold text-slate-600 uppercase mb-2">Behavioral Diagnostic Radar</h4>
+            <div class="w-full max-w-[280px] h-[260px]">
               <canvas id="student-radar-chart"></canvas>
             </div>
           </div>
 
-          <!-- Detailed Metrics Grid -->
-          <div class="space-y-4">
-            <!-- Attendance Metric Bar -->
-            <div class="p-4 bg-slate-900/40 rounded-xl border border-slate-800">
-              <div class="flex justify-between items-center mb-1">
-                <span class="text-xs font-semibold text-slate-300">Classroom Attendance</span>
-                <span id="modal-att-val" class="text-xs font-bold text-white">0%</span>
+          <div class="lg:col-span-6 space-y-4">
+            <!-- Attendance Metric -->
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+              <div class="flex items-center justify-between text-xs mb-1.5">
+                <span class="font-bold text-slate-700">Cumulative Attendance</span>
+                <span id="modal-att-val" class="font-bold text-slate-900">0%</span>
               </div>
-              <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
-                <div id="modal-att-bar" class="h-2 rounded-full" style="width: 0%"></div>
-              </div>
-              <p class="text-[10px] text-slate-400 mt-1.5">Institutional guideline: minimum 75% attendance for examination eligibility.</p>
-            </div>
-
-            <!-- Behavioral Metrics Cards -->
-            <div class="grid grid-cols-2 gap-3">
-              <div class="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
-                <span class="text-[11px] text-slate-400">LMS Portal Logins</span>
-                <p id="modal-lms-logins" class="text-base font-bold text-white mt-0.5">0 / week</p>
-              </div>
-              <div class="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
-                <span class="text-[11px] text-slate-400">Assignment Delay</span>
-                <p id="modal-delay" class="text-base font-bold text-white mt-0.5">0 hrs</p>
-              </div>
-              <div class="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
-                <span class="text-[11px] text-slate-400">Study Hours</span>
-                <p id="modal-study-hrs" class="text-base font-bold text-white mt-0.5">0 hrs/day</p>
-              </div>
-              <div class="p-3 bg-slate-900/60 border border-slate-800 rounded-lg">
-                <span class="text-[11px] text-slate-400">Stress / Burnout</span>
-                <p id="modal-stress" class="text-base font-bold text-white mt-0.5">0 / 10</p>
+              <div class="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
+                <div id="modal-att-bar" class="h-2 rounded-full bg-blue-600" style="width: 0%"></div>
               </div>
             </div>
 
-            <!-- Academic Scores -->
-            <div class="p-3 bg-slate-900/80 border border-slate-800 rounded-xl">
-              <h5 class="text-xs font-bold text-cyan-400 mb-2">Continuous Assessment (CIA) & Marks</h5>
-              <div class="grid grid-cols-3 gap-2 text-center">
-                <div class="bg-slate-950 p-2 rounded border border-slate-800">
-                  <span class="text-[10px] text-slate-400">CIA-1</span>
-                  <p id="modal-cia1" class="text-xs font-bold text-white mt-0.5">-</p>
+            <!-- Behavior 4-grid -->
+            <div class="grid grid-cols-2 gap-3 text-xs">
+              <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <span class="text-slate-500 block text-[11px]">LMS Logins/Wk</span>
+                <p id="modal-lms-logins" class="text-base font-bold text-slate-900 mt-0.5">0 / week</p>
+              </div>
+              <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <span class="text-slate-500 block text-[11px]">Assignment Delay</span>
+                <p id="modal-delay" class="text-base font-bold text-slate-900 mt-0.5">0 hrs</p>
+              </div>
+              <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <span class="text-slate-500 block text-[11px]">Daily Study Hours</span>
+                <p id="modal-study-hrs" class="text-base font-bold text-slate-900 mt-0.5">0 hrs/day</p>
+              </div>
+              <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <span class="text-slate-500 block text-[11px]">Stress Index</span>
+                <p id="modal-stress" class="text-base font-bold text-slate-900 mt-0.5">0 / 10</p>
+              </div>
+            </div>
+
+            <!-- Academic Snapshot -->
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+              <span class="text-[11px] font-bold text-slate-500 uppercase block mb-2">Examination &amp; Assessment Performance</span>
+              <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                <div class="p-2 bg-white rounded-lg border border-slate-200">
+                  <span class="text-slate-500 text-[10px]">CIA-1</span>
+                  <p id="modal-cia1" class="text-xs font-bold text-slate-900 mt-0.5">-</p>
                 </div>
-                <div class="bg-slate-950 p-2 rounded border border-slate-800">
-                  <span class="text-[10px] text-slate-400">CIA-2</span>
-                  <p id="modal-cia2" class="text-xs font-bold text-white mt-0.5">-</p>
+                <div class="p-2 bg-white rounded-lg border border-slate-200">
+                  <span class="text-slate-500 text-[10px]">CIA-2</span>
+                  <p id="modal-cia2" class="text-xs font-bold text-slate-900 mt-0.5">-</p>
                 </div>
-                <div class="bg-slate-950 p-2 rounded border border-slate-800">
-                  <span class="text-[10px] text-slate-400">Model Exam</span>
-                  <p id="modal-model" class="text-xs font-bold text-white mt-0.5">-</p>
+                <div class="p-2 bg-white rounded-lg border border-slate-200">
+                  <span class="text-slate-500 text-[10px]">Model Exam</span>
+                  <p id="modal-model" class="text-xs font-bold text-slate-900 mt-0.5">-</p>
                 </div>
               </div>
-              <div class="flex justify-between items-center mt-2 pt-2 border-t border-slate-800 text-xs">
-                <span class="text-slate-400">CGPA: <strong id="modal-cgpa" class="text-cyan-400">0.0</strong></span>
-                <span class="text-slate-400">Active Backlogs: <strong id="modal-arrears" class="text-rose-400">0</strong></span>
+              <div class="mt-2.5 pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
+                <span class="text-slate-600">Current CGPA: <strong id="modal-cgpa" class="text-blue-600 font-bold">0.0</strong></span>
+                <span class="text-slate-600">Arrears / Backlogs: <strong id="modal-arrears" class="text-rose-600 font-bold">0</strong></span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Contact & Mentor Details -->
-        <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 text-xs grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <!-- Mentorship & Contact Info -->
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
           <div>
-            <span class="text-slate-400 block">Faculty Advisor / Mentor:</span>
-            <strong id="modal-mentor" class="text-slate-200">Faculty Guide</strong>
+            <span class="text-slate-500 font-bold text-[10px] uppercase block">Faculty Mentor / Guide</span>
+            <strong id="modal-mentor" class="text-slate-900 text-sm mt-0.5 block">Faculty Guide</strong>
+            <div class="mt-1 space-y-0.5 text-slate-600">
+              <span id="modal-email" class="block font-mono">email@institution.edu</span>
+              <span id="modal-phone" class="block font-mono">+91 ...</span>
+            </div>
           </div>
           <div>
-            <span class="text-slate-400 block">Student Contact:</span>
-            <span id="modal-email" class="text-slate-300 block truncate font-mono">email@institution.edu</span>
-            <span id="modal-phone" class="text-slate-300 font-mono">+91 ...</span>
-          </div>
-          <div>
-            <span class="text-slate-400 block">Parent / Guardian:</span>
-            <strong id="modal-parent-info" class="text-slate-200">Parent Info</strong>
+            <span class="text-slate-500 font-bold text-[10px] uppercase block">Parent / Guardian Contact</span>
+            <strong id="modal-parent-info" class="text-slate-900 text-sm mt-0.5 block">Parent Info</strong>
           </div>
         </div>
       </div>
 
       <!-- Modal Footer Action Tools -->
-      <div class="bg-slate-900/90 px-6 py-4 rounded-b-2xl border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
+      <div class="bg-slate-50 px-6 py-4 rounded-b-2xl border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-2">
-          <button id="modal-btn-letter" class="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition border border-slate-700">
-            📄 Generate Official Notice Letter
+          <button id="modal-btn-letter" class="inline-flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-slate-100 text-slate-800 rounded-lg text-xs font-bold transition border border-slate-300 shadow-sm">
+            📄 Generate Parent Notice Letter
           </button>
-          <a id="modal-btn-materials" href="/materials" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 rounded-lg text-xs font-bold transition border border-rose-500/30">
-            📚 Subject Study Materials
+          <a id="modal-btn-materials" href="{{ url_for('materials_view') }}" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-bold transition border border-rose-200 shadow-sm">
+            📚 Subject Textbooks &amp; Notes
           </a>
         </div>
         <div class="flex items-center gap-2">
-          <button id="modal-btn-simulate" class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition shadow">
-            🎛️ Simulate Intervention
+          <button id="modal-btn-simulate" class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition shadow-sm">
+            🎛️ What-If Simulator
           </button>
-          <button id="modal-btn-intervene" class="inline-flex items-center gap-1.5 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-lg text-xs font-bold transition shadow">
+          <button id="modal-btn-intervene" class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow-sm">
             🎯 Log New Intervention
           </button>
         </div>
@@ -349,227 +409,78 @@
   </div>
 
   <!-- 2. Official Formal Parent Letterhead Modal -->
-  <div id="official-letter-modal" class="fixed inset-0 z-50 bg-black/80 hidden items-center justify-center p-4 backdrop-blur-md">
-    <div class="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[92vh] overflow-y-auto border border-slate-300 flex flex-col text-slate-900">
-      <!-- Action Toolbar (Hidden in print) -->
-      <div class="no-print bg-slate-900 text-white px-5 py-3 rounded-t-xl flex items-center justify-between">
-        <span class="text-xs font-semibold text-cyan-400">Formal Institutional Document Preview</span>
+  <div id="official-letter-modal" class="fixed inset-0 z-50 bg-slate-900/60 hidden items-center justify-center p-4 backdrop-blur-sm">
+    <div class="relative w-full max-w-3xl max-h-[95vh] bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-y-auto flex flex-col justify-between">
+      <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 rounded-t-2xl">
+        <div class="flex items-center gap-2 text-xs font-bold text-slate-700">
+          <span>📜</span>
+          <span>Official Institutional Notice Letter</span>
+        </div>
         <div class="flex items-center gap-2">
-          <button onclick="window.print()" class="px-3.5 py-1.5 bg-cyan-500 text-slate-950 font-bold rounded-lg text-xs hover:bg-cyan-400 transition flex items-center gap-1.5 shadow">
-            🖨️ Print / Save as PDF
+          <button onclick="window.print()" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow-sm">
+            🖨️ Print Notice
           </button>
-          <button onclick="closeModal('official-letter-modal')" class="text-slate-400 hover:text-white p-1">
+          <button onclick="closeModal('official-letter-modal')" class="text-slate-500 hover:text-slate-800 p-1">
             ✕
           </button>
         </div>
       </div>
-      
-      <!-- Official Letterhead Page (Printable) -->
-      <div class="p-8 sm:p-12 text-slate-900 space-y-6 printable-document bg-white">
-        <!-- Letterhead Header -->
-        <div class="text-center border-b-2 border-slate-800 pb-4">
-          <div class="flex justify-center mb-2">
-            <div class="w-16 h-16">
-              <img src="{{ url_for('static', filename='img/college_seal.svg') }}" alt="Seal" class="w-full h-full">
-            </div>
-          </div>
-          <h2 class="text-xl sm:text-2xl font-bold text-slate-900 uppercase tracking-wide">
-            {{ config.COLLEGE_NAME }}
-          </h2>
-          <p class="text-xs text-slate-600 font-semibold tracking-wide">
-            {{ config.INSTITUTION_TAGLINE }}
-          </p>
-          <p class="text-[11px] text-slate-500 font-mono mt-0.5">
-            Platform Code: {{ config.COLLEGE_CODE }} | Academic Advisory & Student Progression Directorate
-          </p>
-        </div>
-
-        <!-- Reference & Date -->
-        <div class="flex justify-between items-center text-xs font-mono">
-          <span>Ref: <strong id="letter-ref">INST/ACAD/2026/CSE/001</strong></span>
-          <span>Date: <strong id="letter-date">25-October-2026</strong></span>
-        </div>
-
-        <!-- Status Tag -->
-        <div class="text-center">
-          <span id="letter-status-pill" class="inline-block px-4 py-1 rounded bg-slate-100 border border-slate-300 text-xs font-bold uppercase tracking-widest text-slate-800">
-            OFFICIAL NOTICE
-          </span>
-        </div>
-
-        <!-- Recipient -->
-        <div class="text-xs space-y-1">
-          <p>To,</p>
-          <p><strong id="letter-parent-name">Parent / Guardian</strong>,</p>
-          <p>Parent of: <strong id="letter-student-name">Student Name</strong> (Roll No: <span id="letter-reg-no">2024...</span>),</p>
-          <p>Department: <span id="letter-dept-info">Computer Science & Engineering</span>.</p>
-        </div>
-
-        <!-- Subject -->
-        <div class="text-xs font-bold uppercase border-l-4 border-slate-800 pl-3 py-1 bg-slate-50">
-          Sub: Intimation of Student Academic Performance, Attendance Status & Intervention Schedule — Reg.
-        </div>
-
-        <!-- Body Text -->
-        <div class="text-xs text-justify leading-relaxed space-y-3">
-          <p>Dear Parent / Guardian,</p>
-          <p>
-            As part of the continuous academic surveillance and quality assurance protocols, the learning progress and behavioral patterns of your ward have been reviewed. Below is the verified performance snapshot as of the current semester assessment cycle:
-          </p>
-          
-          <!-- Performance Table -->
-          <table class="w-full border border-slate-400 text-center my-3 text-xs">
-            <thead class="bg-slate-100 border-b border-slate-400">
-              <tr>
-                <th class="p-2 border-r border-slate-400">Classroom Attendance</th>
-                <th class="p-2 border-r border-slate-400">CIA - 1 Marks</th>
-                <th class="p-2 border-r border-slate-400">CIA - 2 Marks</th>
-                <th class="p-2">Pending Backlogs</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td id="letter-att" class="p-2 border-r border-slate-400 font-bold">0%</td>
-                <td id="letter-cia1" class="p-2 border-r border-slate-400 font-bold">-</td>
-                <td id="letter-cia2" class="p-2 border-r border-slate-400 font-bold">-</td>
-                <td id="letter-arrears" class="p-2 font-bold text-rose-700">0</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div id="letter-warning-box" class="p-3 bg-rose-50 border border-rose-300 rounded text-rose-900 hidden">
-            <strong>ATTENTION:</strong> As per Institutional Academic Regulations, a candidate who secures less than <strong>75%</strong> overall attendance will not be permitted to appear for the End-Semester Examinations and is liable for <strong>EXAMINATION DEBARMENT</strong>. You are requested to counsel your ward immediately and report to the Faculty Advisor.
-          </div>
-
-          <p>
-            The Department has scheduled structured remedial mentoring and targeted interventions to assist the student in overcoming academic hurdles. We request your active cooperation in monitoring your ward's study hours at home and ensuring regular classroom attendance.
-          </p>
-        </div>
-
-        <!-- Signatures -->
-        <div class="grid grid-cols-3 gap-6 pt-12 text-center text-xs">
-          <div>
-            <div class="border-t border-slate-400 pt-2 font-semibold" id="letter-mentor-name">Faculty Advisor</div>
-            <span class="text-[10px] text-slate-500">Mentor / Class Incharge</span>
-          </div>
-          <div>
-            <div class="border-t border-slate-400 pt-2 font-semibold">Head of Department</div>
-            <span class="text-[10px] text-slate-500">Department Academic Head</span>
-          </div>
-          <div>
-            <div class="border-t border-slate-400 pt-2 font-semibold">Dean (Academics)</div>
-            <span class="text-[10px] text-slate-500">Academic Review Board</span>
-          </div>
-        </div>
+      <div class="p-8 space-y-6 text-slate-800 text-xs font-serif leading-relaxed" id="letter-content-body">
+        <!-- Rendered dynamically -->
       </div>
     </div>
   </div>
 
   <!-- 3. New Intervention Modal -->
-  <div id="new-intervention-modal" class="fixed inset-0 z-50 bg-black/80 hidden items-center justify-center p-4 backdrop-blur-md">
-    <div class="bg-[#0B0F19] rounded-2xl shadow-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto border border-slate-700/80 text-slate-200">
-      <div class="px-6 py-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-b border-slate-800 flex items-center justify-between">
-        <div>
-          <h3 class="text-base font-bold text-white">Assign Academic Intervention</h3>
-          <p id="intervene-student-display" class="text-xs text-cyan-400">Target Student</p>
-        </div>
-        <button onclick="closeModal('new-intervention-modal')" class="text-slate-400 hover:text-white p-1">✕</button>
+  <div id="new-intervention-modal" class="fixed inset-0 z-50 bg-slate-900/60 hidden items-center justify-center p-4 backdrop-blur-sm">
+    <div class="relative w-full max-w-xl bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+        <h3 class="text-base font-bold text-slate-900">Assign Institutional Academic Intervention</h3>
+        <button onclick="closeModal('new-intervention-modal')" class="text-slate-400 hover:text-slate-700 p-1">✕</button>
       </div>
-
-      <form id="new-intervention-form" onsubmit="submitInterventionForm(event)" class="p-6 space-y-4 text-xs">
-        <input type="hidden" id="intervene-student-id">
-        
-        <!-- AI Recommendations Selector -->
+      <form id="form-new-intervention" onsubmit="handleCreateIntervention(event)" class="space-y-3 text-xs">
+        <input type="hidden" id="intv-student-id">
         <div>
-          <label class="block font-semibold text-slate-300 mb-1">AI Prescribed Interventions (Click to Apply):</label>
-          <div id="intervene-recommendations" class="space-y-2 max-h-36 overflow-y-auto pr-1"></div>
+          <label class="block text-slate-700 font-bold mb-1">Student</label>
+          <input type="text" id="intv-student-display" readonly class="w-full px-3 py-2 bg-slate-100 rounded-xl border border-slate-300 font-bold text-slate-800">
         </div>
-
-        <div>
-          <label class="block font-semibold text-slate-300 mb-1">Intervention Title</label>
-          <input type="text" id="intervene-title" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:ring-2 focus:ring-cyan-500 outline-none">
-        </div>
-
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block font-semibold text-slate-300 mb-1">Intervention Category</label>
-            <select id="intervene-type" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white">
-              <option value="Academic Remedial">Academic Remedial Class</option>
-              <option value="Attendance Warning">Attendance Warning & Counseling</option>
-              <option value="Counselor Referral">Student Counselor Referral</option>
-              <option value="Parent Intimation">Parent-Teacher Hearing</option>
-              <option value="Behavioral Mentoring">Behavioral & Time Management Coaching</option>
-              <option value="Enrichment Track">Advanced Honors & Research Track</option>
+            <label class="block text-slate-700 font-bold mb-1">Intervention Category *</label>
+            <select id="intv-type" class="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-slate-800 focus:border-blue-600 focus:outline-none">
+              <option value="Academic Remedial">Academic Remedial</option>
+              <option value="Attendance Warning">Attendance Warning</option>
+              <option value="Parent Intimation">Parent Intimation</option>
+              <option value="Counselor Referral">Counselor Referral</option>
             </select>
           </div>
           <div>
-            <label class="block font-semibold text-slate-300 mb-1">Priority</label>
-            <select id="intervene-priority" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white">
-              <option value="Low">Low (Routine)</option>
-              <option value="Medium" selected>Medium</option>
+            <label class="block text-slate-700 font-bold mb-1">Priority Level *</label>
+            <select id="intv-priority" class="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-slate-800 focus:border-blue-600 focus:outline-none">
+              <option value="Normal">Normal</option>
               <option value="High">High</option>
-              <option value="Urgent">Urgent (Debarment Risk)</option>
+              <option value="Urgent">Urgent (Immediate Hearing)</option>
             </select>
           </div>
         </div>
-
         <div>
-          <label class="block font-semibold text-slate-300 mb-1">Diagnosis & Rationale</label>
-          <textarea id="intervene-reason" rows="2" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:ring-2 focus:ring-cyan-500 outline-none"></textarea>
+          <label class="block text-slate-700 font-bold mb-1">Intervention Strategy Title *</label>
+          <input type="text" id="intv-title" placeholder="e.g. Mandatory Arrear Clearance Coaching" required class="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-slate-800 focus:border-blue-600 focus:outline-none">
         </div>
-
         <div>
-          <label class="block font-semibold text-slate-300 mb-1">Structured Action Plan</label>
-          <textarea id="intervene-action" rows="2" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:ring-2 focus:ring-cyan-500 outline-none"></textarea>
+          <label class="block text-slate-700 font-bold mb-1">Remedial Action Plan *</label>
+          <textarea id="intv-action-plan" rows="3" placeholder="Specify daily study hours, remedial sheets assigned, or mentor meetings..." required class="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-slate-800 focus:border-blue-600 focus:outline-none"></textarea>
         </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block font-semibold text-slate-300 mb-1">Assigned Faculty Guide</label>
-            <input type="text" id="intervene-faculty" value="Dr. K. Senthil Kumar (Faculty Advisor)" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white">
-          </div>
-          <div>
-            <label class="block font-semibold text-slate-300 mb-1">Target Resolution (Days)</label>
-            <input type="number" id="intervene-days" value="14" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white">
-          </div>
-        </div>
-
-        <div class="pt-3 flex justify-end gap-2 border-t border-slate-800">
-          <button type="button" onclick="closeModal('new-intervention-modal')" class="px-4 py-2 border border-slate-700 rounded-lg hover:bg-slate-800 font-semibold text-slate-300">Cancel</button>
-          <button type="submit" class="px-5 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-lg shadow">Confirm & Assign</button>
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+          <button type="button" onclick="closeModal('new-intervention-modal')" class="px-4 py-2 border border-slate-300 rounded-xl hover:bg-slate-100 font-semibold text-slate-700">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-sm">Assign Intervention</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Main JavaScript File -->
+  <!-- Core JavaScript -->
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
-  <script>
-    // Live Clock function
-    function updateClock() {
-      const now = new Date();
-      const el = document.getElementById('live-clock');
-      if (el) {
-        el.textContent = now.toLocaleTimeString();
-      }
-    }
-    setInterval(updateClock, 1000);
-    updateClock();
-
-    // Fullscreen Toggle Helper
-    function toggleFullScreen() {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(err => {
-          console.warn('Fullscreen error:', err);
-        });
-      } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        }
-      }
-    }
-  </script>
   {% block scripts %}{% endblock %}
 
 </body>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Authentication | EduTrack Autonomous Institutional ERP</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col justify-between font-sans antialiased">
+
+  <!-- Top University Branding Header -->
+  <header class="bg-white border-b border-slate-200 py-3.5 px-6 shadow-sm">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-xl shadow-md">
+          E
+        </div>
+        <div>
+          <h1 class="text-base font-bold text-slate-900 tracking-tight">EduTrack <span class="text-blue-600">ERP</span></h1>
+          <p class="text-[11px] text-slate-500 font-medium">Autonomous Engineering Institution &bull; Academic Portal</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          Academic Session 2025-26 Active
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Login Main Content Card -->
+  <main class="flex-1 flex items-center justify-center p-4 md:p-8">
+    <div class="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
+      
+      <!-- Card Header -->
+      <div class="bg-gradient-to-r from-blue-700 to-indigo-800 p-6 text-white text-center">
+        <div class="w-12 h-12 mx-auto rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-2xl mb-3 shadow">
+          🎓
+        </div>
+        <h2 class="text-xl font-bold tracking-tight">Institutional Single Sign-On (SSO)</h2>
+        <p class="text-xs text-blue-100 mt-1">Student &amp; Faculty Academic Information System</p>
+      </div>
+
+      <!-- Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="p-4 space-y-2">
+            {% for category, message in messages %}
+              <div class="p-3 rounded-xl text-xs font-semibold flex items-center justify-between {{ 'bg-red-50 text-red-700 border border-red-200' if category == 'error' else 'bg-blue-50 text-blue-700 border border-blue-200' }}">
+                <span>{{ message }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <!-- Role Selector Tabs -->
+      <div class="flex border-b border-slate-200 bg-slate-50">
+        <button id="tab-student" onclick="switchLoginRole('student')" class="flex-1 py-3 text-xs font-bold transition flex items-center justify-center gap-2 border-b-2 border-blue-600 bg-white text-blue-600">
+          <span>👨‍🎓</span> Student Portal
+        </button>
+        <button id="tab-faculty" onclick="switchLoginRole('faculty')" class="flex-1 py-3 text-xs font-bold transition flex items-center justify-center gap-2 border-b-2 border-transparent text-slate-500 hover:text-slate-700">
+          <span>👨‍🏫</span> Faculty / Staff
+        </button>
+      </div>
+
+      <div class="p-6">
+        
+        <!-- STUDENT LOGIN FORM -->
+        <form id="form-student" method="POST" action="{{ url_for('login') }}" class="space-y-4">
+          <input type="hidden" name="role" value="student">
+          
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Student Register Number (Roll No) *</label>
+            <div class="relative">
+              <input type="text" id="student-reg-input" name="reg_no" required placeholder="e.g. 2024CSE001" value="2024CSE001" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-800 text-xs font-mono uppercase focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600">
+            </div>
+            <p class="text-[11px] text-slate-500 mt-1">Universal Roll No as assigned by Academic Section</p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Student Password *</label>
+            <input type="password" name="password" required placeholder="Enter your Register No" value="2024CSE001" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-800 text-xs font-mono focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600">
+            <p class="text-[11px] text-slate-400 mt-1">Default student security password is your Register Number</p>
+          </div>
+
+          <button type="submit" class="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition flex items-center justify-center gap-2">
+            Sign In as Student &rarr;
+          </button>
+
+          <!-- Quick 1-Click Demo Buttons -->
+          <div class="pt-3 border-t border-slate-100 space-y-2">
+            <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">One-Click Evaluator Quick Logins:</span>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <button type="button" onclick="fillStudent('2024CSE001')" class="p-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium text-[11px] border border-blue-200 text-left">
+                <strong>2024CSE001</strong><br><span class="text-[10px] text-slate-500">Dhanush R (CSE)</span>
+              </button>
+              <button type="button" onclick="fillStudent('2024AIDS001')" class="p-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium text-[11px] border border-indigo-200 text-left">
+                <strong>2024AIDS001</strong><br><span class="text-[10px] text-slate-500">Aravind S (AI&amp;DS)</span>
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <!-- FACULTY LOGIN FORM -->
+        <form id="form-faculty" method="POST" action="{{ url_for('login') }}" class="space-y-4 hidden">
+          <input type="hidden" name="role" value="faculty">
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Faculty / Staff Code *</label>
+            <input type="text" id="faculty-code-input" name="staff_code" required placeholder="e.g. FAC101" value="FAC101" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-800 text-xs font-mono uppercase focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600">
+            <p class="text-[11px] text-slate-500 mt-1">Official Employee Code (e.g. FAC101, HOD_CSE)</p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Staff Password *</label>
+            <input type="password" name="password" required value="FAC101" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-800 text-xs font-mono focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600">
+          </div>
+
+          <button type="submit" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-500/20 transition flex items-center justify-center gap-2">
+            Sign In as Faculty / Advisor &rarr;
+          </button>
+
+          <!-- Quick 1-Click Faculty Demo -->
+          <div class="pt-3 border-t border-slate-100 space-y-2">
+            <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Quick Faculty Roles:</span>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <button type="button" onclick="fillFaculty('FAC101')" class="p-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium text-[11px] border border-indigo-200 text-left">
+                <strong>FAC101</strong><br><span class="text-[10px] text-slate-500">Dr. K. Senthil Kumar (Advisor)</span>
+              </button>
+              <button type="button" onclick="fillFaculty('HOD_CSE')" class="p-2 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 font-medium text-[11px] border border-purple-200 text-left">
+                <strong>HOD_CSE</strong><br><span class="text-[10px] text-slate-500">Dr. R. Vijay Anand (HOD)</span>
+              </button>
+            </div>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="py-4 text-center text-xs text-slate-500 border-t border-slate-200 bg-white">
+    EduTrack AI &bull; Autonomous Higher Education Academic ERP Platform &bull; Academic Year 2025-2026
+  </footer>
+
+  <script>
+    function switchLoginRole(role) {
+      const studentTab = document.getElementById('tab-student');
+      const facultyTab = document.getElementById('tab-faculty');
+      const studentForm = document.getElementById('form-student');
+      const facultyForm = document.getElementById('form-faculty');
+
+      if (role === 'student') {
+        studentTab.classList.add('border-blue-600', 'bg-white', 'text-blue-600');
+        studentTab.classList.remove('border-transparent', 'text-slate-500');
+        facultyTab.classList.add('border-transparent', 'text-slate-500');
+        facultyTab.classList.remove('border-blue-600', 'bg-white', 'text-blue-600');
+        studentForm.classList.remove('hidden');
+        facultyForm.classList.add('hidden');
+      } else {
+        facultyTab.classList.add('border-indigo-600', 'bg-white', 'text-indigo-600');
+        facultyTab.classList.remove('border-transparent', 'text-slate-500');
+        studentTab.classList.add('border-transparent', 'text-slate-500');
+        studentTab.classList.remove('border-indigo-600', 'bg-white', 'text-indigo-600');
+        facultyForm.classList.remove('hidden');
+        studentForm.classList.add('hidden');
+      }
+    }
+
+    function fillStudent(reg) {
+      document.getElementById('student-reg-input').value = reg;
+      document.querySelector('#form-student input[type="password"]').value = reg;
+    }
+
+    function fillFaculty(code) {
+      document.getElementById('faculty-code-input').value = code;
+      document.querySelector('#form-faculty input[type="password"]').value = code;
+    }
+  </script>
+</body>
+</html>

@@ -232,3 +232,118 @@ class CourseMaterial(db.Model):
             'uploaded_by': self.uploaded_by,
             'created_at': self.created_at.strftime('%d-%m-%Y') if self.created_at else ''
         }
+
+
+class CourseBook(db.Model):
+    __tablename__ = 'course_books'
+
+    id = db.Column(db.Integer, primary_key=True)
+    subject_code = db.Column(db.String(20), nullable=False, index=True)
+    subject_name = db.Column(db.String(120), nullable=False)
+    department = db.Column(db.String(50), nullable=False)
+    semester = db.Column(db.Integer, default=3)
+    title = db.Column(db.String(200), nullable=False)
+    author = db.Column(db.String(120), default='Academic Department Faculty Board')
+    edition = db.Column(db.String(50), default='2025 Autonomous Curriculum Edition')
+    pages = db.Column(db.Integer, default=320)
+    summary = db.Column(db.Text, default='')
+    units_json = db.Column(db.Text, default='[]') # JSON list of {unit_number, unit_title, chapters, text_content}
+    downloads_count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        import json
+        try:
+            units = json.loads(self.units_json)
+        except Exception:
+            units = []
+        return {
+            'id': self.id,
+            'subject_code': self.subject_code,
+            'subject_name': self.subject_name,
+            'department': self.department,
+            'semester': self.semester,
+            'title': self.title,
+            'author': self.author,
+            'edition': self.edition,
+            'pages': self.pages,
+            'summary': self.summary,
+            'units': units,
+            'downloads_count': self.downloads_count,
+            'created_at': self.created_at.strftime('%d-%m-%Y') if self.created_at else ''
+        }
+
+
+class DailyTask(db.Model):
+    __tablename__ = 'daily_tasks'
+
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False, index=True)
+    day_number = db.Column(db.Integer, nullable=False) # 1 to 30
+    subject_code = db.Column(db.String(20), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, default='')
+    duration_mins = db.Column(db.Integer, default=45)
+    is_completed = db.Column(db.Boolean, default=False)
+    completed_at = db.Column(db.DateTime, nullable=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'student_id': self.student_id,
+            'day_number': self.day_number,
+            'subject_code': self.subject_code,
+            'title': self.title,
+            'description': self.description,
+            'duration_mins': self.duration_mins,
+            'is_completed': self.is_completed,
+            'completed_at': self.completed_at.strftime('%d-%m-%Y %H:%M') if self.completed_at else None
+        }
+
+
+class TestAttempt(db.Model):
+    __tablename__ = 'test_attempts'
+
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False, index=True)
+    subject = db.Column(db.String(100), nullable=False)
+    score = db.Column(db.Float, nullable=False)
+    total_questions = db.Column(db.Integer, default=10)
+    time_spent_secs = db.Column(db.Integer, default=0)
+    grade = db.Column(db.String(10), default='A')
+    status = db.Column(db.String(30), default='Passed')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'student_id': self.student_id,
+            'subject': self.subject,
+            'score': self.score,
+            'total_questions': self.total_questions,
+            'time_spent_secs': self.time_spent_secs,
+            'grade': self.grade,
+            'status': self.status,
+            'created_at': self.created_at.strftime('%d-%m-%Y %H:%M') if self.created_at else ''
+        }
+
+
+class StudySessionLog(db.Model):
+    __tablename__ = 'study_session_logs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False, index=True)
+    duration_minutes = db.Column(db.Float, nullable=False)
+    camera_active = db.Column(db.Boolean, default=True)
+    notes = db.Column(db.String(200), default='Online Proctored Study Lounge Session')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'student_id': self.student_id,
+            'duration_minutes': self.duration_minutes,
+            'camera_active': self.camera_active,
+            'notes': self.notes,
+            'created_at': self.created_at.strftime('%d-%m-%Y %H:%M') if self.created_at else ''
+        }

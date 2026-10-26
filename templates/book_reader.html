@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-4">
+
+  <!-- Header Card -->
+  <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div class="space-y-1">
+      <div class="flex items-center gap-2">
+        <a href="{{ url_for('materials_view') }}" class="text-xs font-semibold text-blue-600 hover:underline flex items-center gap-1">
+          &larr; Back to E-Library
+        </a>
+        <span class="text-slate-300">/</span>
+        <span class="px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-mono text-xs font-bold border border-blue-200">
+          {{ book.subject_code }}
+        </span>
+        <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-xs font-medium">
+          {{ book.department }} &bull; Semester {{ book.semester }}
+        </span>
+      </div>
+      <h1 class="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">
+        {{ book.title }}
+      </h1>
+      <p class="text-xs text-slate-500">
+        {{ book.author }} &bull; {{ book.edition }} &bull; <strong>{{ book.pages }} Pages</strong>
+      </p>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <!-- Font Size Adjuster -->
+      <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
+        <button onclick="changeFontSize(-1)" title="Smaller font" class="px-2 py-1 bg-white hover:bg-slate-50 rounded text-slate-700 font-bold">A-</button>
+        <button onclick="changeFontSize(1)" title="Larger font" class="px-2 py-1 bg-white hover:bg-slate-50 rounded text-slate-700 font-bold">A+</button>
+      </div>
+
+      <a href="{{ url_for('download_book', book_id=book.id) }}" class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm flex items-center gap-2 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+        Download Complete Textbook
+      </a>
+    </div>
+  </div>
+
+  <!-- Main Reader Split Layout -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+    
+    <!-- Left Navigation: Table of Contents -->
+    <div class="lg:col-span-4 bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3 sticky top-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Table of Contents</h3>
+        <span class="text-[11px] text-blue-600 font-bold font-mono">5 Units Complete</span>
+      </div>
+
+      <div class="space-y-1.5" id="toc-list">
+        {% for u in book.units %}
+        <button onclick="loadUnit({{ loop.index0 }})" id="toc-btn-{{ loop.index0 }}" class="toc-btn w-full text-left p-3 rounded-xl transition border text-xs {{ 'bg-blue-50 border-blue-200 text-blue-900 font-bold' if loop.first else 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100' }}">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-[10px] font-mono uppercase font-bold text-blue-600">Unit {{ u.unit_number }}</span>
+            <span class="w-2 h-2 rounded-full {{ 'bg-blue-600' if loop.first else 'bg-slate-300' }}"></span>
+          </div>
+          <div class="line-clamp-2 leading-snug">
+            {{ u.unit_title }}
+          </div>
+        </button>
+        {% endfor %}
+      </div>
+
+      <!-- Quick Study Timer / Log -->
+      <div class="pt-3 border-t border-slate-100 space-y-2">
+        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs flex items-center justify-between">
+          <div>
+            <span class="text-[10px] text-slate-500 font-bold uppercase block">Reading Timer</span>
+            <span id="reading-time" class="font-mono text-sm font-bold text-blue-600">00:00</span>
+          </div>
+          <button onclick="logReadingSession()" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-sm">
+            Log 30m Study
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Content Pane: Unit Content Reader -->
+    <div class="lg:col-span-8 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 md:p-8 space-y-6">
+      
+      <!-- Unit Banner -->
+      <div class="border-b border-slate-100 pb-4 space-y-1">
+        <span id="unit-num-badge" class="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-mono text-xs font-bold">
+          Unit 1
+        </span>
+        <h2 id="unit-title-heading" class="text-xl font-bold text-slate-900 mt-2">
+          {{ book.units[0].unit_title if book.units else 'Unit Syllabus' }}
+        </h2>
+        <p id="unit-summary-text" class="text-xs text-slate-500 italic mt-1">
+          {{ book.units[0].summary if book.units else '' }}
+        </p>
+      </div>
+
+      <!-- Book Chapter Content -->
+      <div id="unit-content-body" class="prose max-w-none text-slate-800 text-sm leading-relaxed whitespace-pre-wrap font-sans">
+        {{ book.units[0].content if book.units else 'No content loaded.' }}
+      </div>
+
+      <!-- Footer Navigation inside Book -->
+      <div class="pt-6 border-t border-slate-200 flex items-center justify-between">
+        <button id="btn-prev-unit" onclick="navigateUnit(-1)" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-bold transition flex items-center gap-1.5">
+          &larr; Previous Unit
+        </button>
+        <button id="btn-next-unit" onclick="navigateUnit(1)" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+          Next Unit &rarr;
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+  const unitsData = {{ book.units|tojson }};
+  let currentUnitIdx = 0;
+  let currentFontSize = 14;
+
+  function loadUnit(idx) {
+    if (idx < 0 || idx >= unitsData.length) return;
+    currentUnitIdx = idx;
+    const u = unitsData[idx];
+
+    document.getElementById('unit-num-badge').innerText = `Unit ${u.unit_number}`;
+    document.getElementById('unit-title-heading').innerText = u.unit_title;
+    document.getElementById('unit-summary-text').innerText = u.summary;
+    document.getElementById('unit-content-body').innerText = u.content;
+
+    // Update TOC styles
+    document.querySelectorAll('.toc-btn').forEach((btn, i) => {
+      if (i === idx) {
+        btn.className = 'toc-btn w-full text-left p-3 rounded-xl transition border text-xs bg-blue-50 border-blue-200 text-blue-900 font-bold';
+      } else {
+        btn.className = 'toc-btn w-full text-left p-3 rounded-xl transition border text-xs bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100';
+      }
+    });
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function navigateUnit(direction) {
+    loadUnit(currentUnitIdx + direction);
+  }
+
+  function changeFontSize(delta) {
+    currentFontSize = Math.max(12, Math.min(20, currentFontSize + delta));
+    document.getElementById('unit-content-body').style.fontSize = `${currentFontSize}px`;
+  }
+
+  // Reading stopwatch
+  let seconds = 0;
+  setInterval(() => {
+    seconds++;
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    const el = document.getElementById('reading-time');
+    if (el) el.innerText = `${m}:${s}`;
+  }, 1000);
+
+  async function logReadingSession() {
+    try {
+      const res = await fetch('/api/log-study-time', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          duration_minutes: 30,
+          notes: 'Completed Unit Reading in {{ book.subject_code }} Textbook'
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('30 minutes of active reading successfully logged to your Academic Profile!');
+      }
+    } catch (e) {
+      alert('Logged session locally!');
+    }
+  }
+</script>
+{% endblock %}

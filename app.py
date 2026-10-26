@@ -2,15 +2,18 @@ import os
 import io
 import csv
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, Response
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, Response, session
 
 from config import Config
-from models import db, Student, BehaviorMetrics, AcademicRecords, ClusterResult, Intervention, CourseMaterial
+from models import db, Student, BehaviorMetrics, AcademicRecords, ClusterResult, Intervention, CourseMaterial, CourseBook, DailyTask, TestAttempt, StudySessionLog
 from ml.data_generator import generate_cohort
 from ml.segmentation import BehaviorSegmentationPipeline, CLUSTER_META
 from ml.risk_predictor import calculate_student_risk
 from ml.intervention_engine import recommend_interventions, generate_official_letter_content
 from ml.materials_data import COURSE_MATERIALS_SEED
+from ml.textbooks_data import TEXTBOOKS_SEED
+from ml.daily_curriculum import DAILY_COURSE_ROADMAP
+from ml.quiz_questions import QUIZ_QUESTIONS, QUIZ_SUBJECTS
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -22,10 +25,35 @@ def create_app(config_class=Config):
     # Global template context
     @app.context_processor
     def inject_global_config():
+        user_role = session.get('user_role', 'student')
+        if user_role == 'student':
+            student = None
+            if session.get('user_id'):
+                student = Student.query.get(session.get('user_id'))
+            if not student:
+                student = Student.query.first()
+            current_user = {
+                'role': 'student',
+                'name': student.name if student else 'Dhanush R',
+                'reg_no': student.reg_no if student else '2024CSE001',
+                'id': student.id if student else 1,
+                'dept': student.department if student else 'CSE',
+                'year': student.year if student else 3
+            }
+        else:
+            current_user = {
+                'role': 'faculty',
+                'name': session.get('user_name', 'Dr. K. Senthil Kumar (Faculty Advisor)'),
+                'staff_code': session.get('staff_code', 'FAC101'),
+                'dept': 'Academic Affairs & Counseling Cell'
+            }
+            
         return {
             'config': app.config,
             'cluster_meta': CLUSTER_META,
-            'now': datetime.utcnow()
+            'now': datetime.utcnow(),
+            'current_user': current_user,
+            'user_role': current_user['role']
         }
     
     return app
@@ -240,6 +268,70 @@ with app.app_context():
             db.session.add(CourseMaterial(**mat))
         db.session.commit()
         print(f"Seeded {len(COURSE_MATERIALS_SEED)} subject course materials.")
+        
+    # Ensure textbooks exist
+    if CourseBook.query.count() == 0:
+        print("Seeding academic coursebooks and full textbooks...")
+        for b in TEXTBOOKS_SEED:
+            db.session.add(CourseBook(**b))
+        db.session.commit()
+        print(f"Seeded {len(TEXTBOOKS_SEED)} full subject textbooks.")
+
+
+# =========================================================================
+# AUTHENTICATION & SESSION ROUTES
+# =========================================================================
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Dual-Role Authentication: Students login via Reg No; Staff login via Staff Code."""
+    if request.method == 'POST':
+        role = request.form.get('role', 'student')
+        if role == 'student':
+            reg_no = request.form.get('reg_no', '').strip().upper()
+            student = Student.query.filter((Student.reg_no == reg_no) | (Student.reg_no == reg_no.upper())).first()
+            if not student and reg_no:
+                student = Student.query.filter(Student.reg_no.ilike(f"%{reg_no}%")).first()
+                
+            if not student:
+                student = Student.query.first()
+                
+            if student:
+                session['user_role'] = 'student'
+                session['user_id'] = student.id
+                session['reg_no'] = student.reg_no
+                session['user_name'] = student.name
+                session['dept'] = student.department
+                session['year'] = student.year
+                flash(f'Student Authentication Verified: Welcome, {student.name} ({student.reg_no})!', 'success')
+                return redirect(url_for('dashboard'))
+            else:
+                flash(f'Register Number "{reg_no}" not found in institutional student cohort.', 'error')
+                return redirect(url_for('login'))
+                
+        else: # Faculty / Staff
+            staff_code = request.form.get('staff_code', '').strip().upper()
+            if not staff_code:
+                staff_code = 'FAC101'
+            session['user_role'] = 'faculty'
+            session['staff_code'] = staff_code
+            if 'HOD' in staff_code or '101' in staff_code:
+                session['user_name'] = 'Dr. K. Senthil Kumar (Faculty Advisor / HOD)'
+            else:
+                session['user_name'] = 'Prof. M. Bhuvanesh (Department Faculty)'
+            flash(f'Faculty Portal Authenticated: Welcome, {session["user_name"]}', 'success')
+            return redirect(url_for('dashboard'))
+            
+    demo_students = Student.query.limit(6).all()
+    return render_template('login.html', page_title='Autonomous Portal Login', demo_students=demo_students)
+
+
+@app.route('/logout')
+def logout():
+    """Clears user session and redirects to login portal."""
+    session.clear()
+    flash('You have been securely logged out of the portal.', 'info')
+    return redirect(url_for('login'))
 
 
 # =========================================================================
@@ -453,6 +545,7 @@ def materials_view():
         
     materials = q_filter.order_by(CourseMaterial.subject_code.asc(), CourseMaterial.id.asc()).all()
     all_materials = CourseMaterial.query.all()
+    books = CourseBook.query.all()
     
     # Calculate stats
     total_materials = len(all_materials)
@@ -477,6 +570,7 @@ def materials_view():
         'materials.html',
         page_title='Course Study Materials & E-Library',
         materials=[m.to_dict() for m in materials],
+        books=[b.to_dict() for b in books],
         total_materials=total_materials,
         total_downloads=total_downloads,
         remedial_count=remedial_count,
@@ -488,6 +582,309 @@ def materials_view():
         selected_sem=sem,
         selected_type=m_type,
         search_query=query
+    )
+
+
+@app.route('/materials/book/<int:book_id>')
+def read_book(book_id):
+    """Full Interactive Textbook Reader view with chapter navigation."""
+    book = CourseBook.query.get_or_404(book_id)
+    return render_template(
+        'book_reader.html',
+        page_title=f"{book.subject_code} Textbook Reader",
+        book=book.to_dict()
+    )
+
+
+@app.route('/download-book/<int:book_id>')
+def download_book(book_id):
+    """Downloads complete multi-unit textbook file."""
+    import json
+    book = CourseBook.query.get_or_404(book_id)
+    book.downloads_count += 1
+    db.session.commit()
+    
+    units = []
+    try:
+        units = json.loads(book.units_json)
+    except Exception:
+        pass
+        
+    full_text = f"""================================================================================
+INSTITUTIONAL CENTRAL E-LIBRARY & COMPLETE COURSE TEXTBOOK
+AUTONOMOUS ENGINEERING CURRICULUM | ACADEMIC YEAR 2025-2026
+================================================================================
+
+TITLE        : {book.title}
+SUBJECT CODE : {book.subject_code} - {book.subject_name}
+DEPARTMENT   : {book.department} (Semester {book.semester})
+AUTHORS      : {book.author}
+EDITION      : {book.edition} | Total Course Pages: {book.pages}
+DATE ARCHIVED: {book.created_at.strftime('%Y-%m-%d')}
+TOTAL ACCESS : {book.downloads_count} Downloads
+
+--------------------------------------------------------------------------------
+EXECUTIVE COURSE SUMMARY & SYLLABUS SCOPE
+--------------------------------------------------------------------------------
+{book.summary}
+
+"""
+    for u in units:
+        full_text += f"""
+================================================================================
+{u.get('unit_title', 'UNIT')}
+================================================================================
+SUMMARY: {u.get('summary', '')}
+
+{u.get('content', '')}
+
+--------------------------------------------------------------------------------
+"""
+
+    full_text += f"""
+================================================================================
+END OF TEXTBOOK | APPROVED FOR CURRICULUM DISTRIBUTION
+================================================================================
+"""
+    clean_filename = f"{book.subject_code}_{book.title[:25].replace(' ', '_')}_FullTextbook.txt"
+    return Response(
+        full_text,
+        mimetype="text/plain",
+        headers={"Content-Disposition": f"attachment;filename={clean_filename}"}
+    )
+
+
+@app.route('/daily-course')
+def daily_course():
+    """30-Day Engineering Curriculum Tracker and Daily Learning Plan."""
+    student_id = session.get('user_id')
+    student = None
+    if student_id:
+        student = Student.query.get(student_id)
+    if not student:
+        student = Student.query.first()
+        
+    tasks = DailyTask.query.filter_by(student_id=student.id).order_by(DailyTask.day_number.asc()).all()
+    if not tasks:
+        for item in DAILY_COURSE_ROADMAP:
+            t = DailyTask(
+                student_id=student.id,
+                day_number=item['day'],
+                subject_code=item['subject_code'],
+                title=f"{item['subject_name']}: {item['title']}",
+                description=item['description'],
+                duration_mins=item['duration_mins'],
+                is_completed=(item['day'] <= 4)
+            )
+            db.session.add(t)
+        db.session.commit()
+        tasks = DailyTask.query.filter_by(student_id=student.id).order_by(DailyTask.day_number.asc()).all()
+        
+    completed_count = sum(1 for t in tasks if t.is_completed)
+    total_days = len(tasks)
+    progress_pct = round((completed_count / total_days) * 100, 1) if total_days else 0
+    streak_days = completed_count
+    
+    return render_template(
+        'daily_course.html',
+        page_title='30-Day Daily Course Curriculum',
+        student=student,
+        tasks=[t.to_dict() for t in tasks],
+        completed_count=completed_count,
+        total_days=total_days,
+        progress_pct=progress_pct,
+        streak_days=streak_days
+    )
+
+
+@app.route('/api/daily-course/toggle', methods=['POST'])
+def api_toggle_daily_task():
+    """Toggles completion state of a daily course task and logs learning time."""
+    data = request.get_json() or {}
+    task_id = data.get('task_id')
+    task = DailyTask.query.get_or_404(task_id)
+    task.is_completed = not task.is_completed
+    task.completed_at = datetime.utcnow() if task.is_completed else None
+    
+    student = Student.query.get(task.student_id)
+    if student and student.behavior and task.is_completed:
+        student.behavior.study_hours_daily = min(8.0, round(student.behavior.study_hours_daily + 0.5, 1))
+        
+    db.session.commit()
+    return jsonify({
+        'success': True,
+        'is_completed': task.is_completed,
+        'task_id': task.id
+    })
+
+
+@app.route('/online-test')
+def online_test_view():
+    """Online Assessment Portal with Live Countdown Timer & Auto Evaluation."""
+    subject = request.args.get('subject', 'All')
+    questions = QUIZ_QUESTIONS
+    if subject and subject != 'All':
+        questions = [q for q in QUIZ_QUESTIONS if q['subject_code'] == subject]
+        
+    student_id = session.get('user_id')
+    student = None
+    if student_id:
+        student = Student.query.get(student_id)
+    if not student:
+        student = Student.query.first()
+        
+    attempts = TestAttempt.query.filter_by(student_id=student.id).order_by(TestAttempt.created_at.desc()).limit(5).all()
+    
+    return render_template(
+        'online_test.html',
+        page_title='Online Assessment Portal',
+        questions=questions,
+        selected_subject=subject,
+        subjects=QUIZ_SUBJECTS,
+        student=student,
+        recent_attempts=[a.to_dict() for a in attempts]
+    )
+
+
+@app.route('/api/online-test/submit', methods=['POST'])
+def api_submit_online_test():
+    """Evaluates student exam submission and logs score and time spent online."""
+    data = request.get_json() or {}
+    answers = data.get('answers', {})
+    time_spent_secs = int(data.get('time_spent_secs', 0))
+    subject_code = data.get('subject_code', 'CS3351')
+    
+    student_id = session.get('user_id')
+    student = None
+    if student_id:
+        student = Student.query.get(student_id)
+    if not student:
+        student = Student.query.first()
+        
+    correct_count = 0
+    feedback = []
+    
+    for q in QUIZ_QUESTIONS:
+        q_id_str = str(q['id'])
+        user_choice = answers.get(q_id_str)
+        is_correct = (user_choice is not None and int(user_choice) == q['correct_idx'])
+        if is_correct:
+            correct_count += 1
+            
+        feedback.append({
+            'id': q['id'],
+            'question': q['question'],
+            'user_choice': int(user_choice) if user_choice is not None else -1,
+            'correct_idx': q['correct_idx'],
+            'is_correct': is_correct,
+            'explanation': q['explanation'],
+            'options': q['options']
+        })
+        
+    total_q = len(QUIZ_QUESTIONS)
+    pct = round((correct_count / total_q) * 100, 1)
+    grade = 'O (Outstanding)' if pct >= 90 else ('A+ (Excellent)' if pct >= 80 else ('B (Good)' if pct >= 60 else 'RA (Re-Appear)'))
+    status = 'Passed' if pct >= 50 else 'Needs Remedial'
+    
+    attempt = TestAttempt(
+        student_id=student.id,
+        subject=QUIZ_SUBJECTS.get(subject_code, 'Engineering Core Assessment'),
+        score=float(correct_count),
+        total_questions=total_q,
+        time_spent_secs=time_spent_secs,
+        grade=grade,
+        status=status
+    )
+    db.session.add(attempt)
+    
+    if student.behavior:
+        student.behavior.quiz_avg_score = round((student.behavior.quiz_avg_score + pct) / 2.0, 1)
+        student.behavior.lms_logins_per_week = min(25.0, student.behavior.lms_logins_per_week + 0.5)
+        
+    db.session.commit()
+    
+    return jsonify({
+        'score': correct_count,
+        'total': total_q,
+        'percentage': pct,
+        'grade': grade,
+        'status': status,
+        'time_spent_secs': time_spent_secs,
+        'feedback': feedback
+    })
+
+
+@app.route('/student/study-room')
+def study_room_view():
+    """Proctored Student Study Lounge with Active WebCam Stream & Focus Timer."""
+    student_id = session.get('user_id')
+    student = None
+    if student_id:
+        student = Student.query.get(student_id)
+    if not student:
+        student = Student.query.first()
+        
+    session_logs = StudySessionLog.query.filter_by(student_id=student.id).order_by(StudySessionLog.created_at.desc()).limit(5).all()
+    
+    return render_template(
+        'study_room.html',
+        page_title='Student Proctored Study Lounge',
+        student=student,
+        session_logs=[l.to_dict() for l in session_logs]
+    )
+
+
+@app.route('/api/log-study-time', methods=['POST'])
+def api_log_study_time():
+    """Logs active webcam study session duration to student metrics."""
+    data = request.get_json() or {}
+    duration_minutes = float(data.get('duration_minutes', 0))
+    notes = data.get('notes', 'WebCam Monitored Study Session')
+    
+    student_id = session.get('user_id')
+    student = None
+    if student_id:
+        student = Student.query.get(student_id)
+    if not student:
+        student = Student.query.first()
+        
+    if duration_minutes > 0:
+        log = StudySessionLog(
+            student_id=student.id,
+            duration_minutes=duration_minutes,
+            camera_active=True,
+            notes=notes
+        )
+        db.session.add(log)
+        
+        if student.behavior:
+            hrs = round(duration_minutes / 60.0, 1)
+            student.behavior.study_hours_daily = min(10.0, round(student.behavior.study_hours_daily + hrs, 1))
+            student.behavior.library_hours_monthly = round(student.behavior.library_hours_monthly + hrs, 1)
+            
+        db.session.commit()
+        
+    return jsonify({
+        'success': True,
+        'duration_minutes': duration_minutes,
+        'study_hours_daily': student.behavior.study_hours_daily if student.behavior else 0
+    })
+
+
+@app.route('/classroom')
+def classroom_view():
+    """Virtual Video Classroom & Live Lecture Meeting Rooms."""
+    student_id = session.get('user_id')
+    student = None
+    if student_id:
+        student = Student.query.get(student_id)
+    if not student:
+        student = Student.query.first()
+        
+    return render_template(
+        'classroom.html',
+        page_title='Virtual Video Classroom & Meeting Rooms',
+        student=student
     )
 
 

@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- Header Banner with Live Exam Clock -->
+  <div class="p-6 md:p-8 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div class="space-y-2 max-w-2xl">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-50 border border-purple-200 text-purple-700 text-xs font-bold">
+        <span>⏱️</span>
+        <span>CONTINUOUS INTERNAL ASSESSMENT (CIA) TIMED EXAM</span>
+      </div>
+      <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
+        Online Engineering Assessment Portal
+      </h1>
+      <p class="text-xs text-slate-600 leading-relaxed">
+        Autonomous syllabus evaluation. Online duration and active test timing are logged in real-time. Anti-cheat activity monitoring is enabled.
+      </p>
+    </div>
+
+    <!-- Active Timer Card -->
+    <div class="flex items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+      <div class="text-center px-3 border-r border-slate-200">
+        <span id="exam-timer" class="text-3xl font-mono font-black text-rose-600 block animate-pulse">15:00</span>
+        <span class="text-[10px] font-bold text-slate-500 uppercase">Time Remaining</span>
+      </div>
+      <div class="text-center px-3">
+        <span id="elapsed-timer" class="text-xl font-mono font-bold text-slate-700 block">00:00</span>
+        <span class="text-[10px] font-bold text-slate-500 uppercase">Active Time Spent</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subject Filter Pills & Test Rules -->
+  <div class="p-4 rounded-xl bg-white border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div class="flex items-center gap-2 overflow-x-auto">
+      <span class="text-xs font-bold text-slate-500 uppercase mr-1">Subject:</span>
+      <a href="{{ url_for('online_test_view', subject='All') }}" class="px-3 py-1.5 rounded-lg text-xs font-bold transition {{ 'bg-blue-600 text-white' if selected_subject == 'All' else 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">All Core ({{ questions|length }})</a>
+      {% for code, name in subjects.items() %}
+      <a href="{{ url_for('online_test_view', subject=code) }}" class="px-3 py-1.5 rounded-lg text-xs font-bold transition {{ 'bg-blue-600 text-white' if selected_subject == code else 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">{{ code }}</a>
+      {% endfor %}
+    </div>
+
+    <div class="text-xs text-slate-500 font-medium">
+      Total Questions: <strong class="text-slate-900">{{ questions|length }}</strong> &bull; Passing Marks: <strong>50%</strong>
+    </div>
+  </div>
+
+  <!-- Exam Form & Questions Container -->
+  <form id="exam-form" onsubmit="handleExamSubmit(event)" class="space-y-4">
+    
+    {% for q in questions %}
+    <div class="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4" id="q-box-{{ q.id }}">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <span class="w-7 h-7 rounded-full bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center">
+            {{ loop.index }}
+          </span>
+          <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-mono text-[11px] font-bold">
+            {{ q.subject_code }}
+          </span>
+        </div>
+        <span class="text-[11px] text-slate-400 font-mono">1 Mark</span>
+      </div>
+
+      <!-- Question Text -->
+      <h3 class="text-sm md:text-base font-semibold text-slate-900 leading-snug">
+        {{ q.question }}
+      </h3>
+
+      <!-- 4 Options -->
+      <div class="space-y-2 pt-1">
+        {% for opt in q.options %}
+        <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/40 cursor-pointer transition text-xs text-slate-800">
+          <input type="radio" name="q_{{ q.id }}" value="{{ loop.index0 }}" class="text-blue-600 focus:ring-blue-500 w-4 h-4">
+          <span class="font-bold text-slate-500">{{ ['A', 'B', 'C', 'D'][loop.index0] }}.</span>
+          <span class="font-medium">{{ opt }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+
+    <!-- Submit Bottom Bar -->
+    <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-between">
+      <div class="text-xs text-slate-500">
+        Review your responses carefully before finalizing submission.
+      </div>
+      <button type="submit" id="btn-submit-exam" class="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition flex items-center gap-2">
+        <span>✅</span> Submit Assessment
+      </button>
+    </div>
+
+  </form>
+
+</div>
+
+<!-- TEST RESULTS MODAL -->
+<div id="resultsModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div class="relative w-full max-w-3xl max-h-[90vh] bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 md:p-8 space-y-6 overflow-y-auto">
+    <div class="text-center space-y-2 pb-4 border-b border-slate-200">
+      <div class="w-16 h-16 mx-auto rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-3xl font-black">
+        🎉
+      </div>
+      <h2 class="text-2xl font-black text-slate-900">Assessment Evaluation Completed</h2>
+      <p class="text-xs text-slate-500">Your exam has been graded and logged into your Institutional Academic Record.</p>
+    </div>
+
+    <!-- Scorecards Summary 3-grid -->
+    <div class="grid grid-cols-3 gap-3 text-center">
+      <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+        <span class="text-[10px] font-bold text-slate-500 uppercase block">Score</span>
+        <span id="res-score" class="text-2xl font-black text-blue-600 block mt-1">0/0</span>
+        <span id="res-pct" class="text-xs text-slate-500 font-bold">0%</span>
+      </div>
+      <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+        <span class="text-[10px] font-bold text-slate-500 uppercase block">Grade &amp; Status</span>
+        <span id="res-grade" class="text-lg font-bold text-slate-900 block mt-1">A</span>
+        <span id="res-status" class="text-xs font-bold text-emerald-600">Passed</span>
+      </div>
+      <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+        <span class="text-[10px] font-bold text-slate-500 uppercase block">Total Online Time</span>
+        <span id="res-time" class="text-lg font-mono font-bold text-slate-900 block mt-1">00:00</span>
+        <span class="text-[10px] text-slate-400">Time to Complete</span>
+      </div>
+    </div>
+
+    <!-- Detailed Solutions Review -->
+    <div class="space-y-3">
+      <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700">Detailed Answer Key &amp; Explanations</h3>
+      <div id="res-feedback-list" class="space-y-3 max-h-80 overflow-y-auto pr-1">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <div class="pt-4 border-t border-slate-200 flex items-center justify-end gap-3">
+      <button onclick="window.location.reload()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm">
+        Close &amp; Return to Dashboard
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let remainingSeconds = 15 * 60; // 15 mins
+  let elapsedSeconds = 0;
+  let timerInterval = null;
+
+  function startExamTimers() {
+    timerInterval = setInterval(() => {
+      elapsedSeconds++;
+      remainingSeconds--;
+
+      // Update elapsed
+      const em = Math.floor(elapsedSeconds / 60).toString().padStart(2, '0');
+      const es = (elapsedSeconds % 60).toString().padStart(2, '0');
+      document.getElementById('elapsed-timer').innerText = `${em}:${es}`;
+
+      // Update remaining
+      if (remainingSeconds <= 0) {
+        clearInterval(timerInterval);
+        alert('Time has expired! Automatically submitting your examination.');
+        submitExamAutomatically();
+        return;
+      }
+      const rm = Math.floor(remainingSeconds / 60).toString().padStart(2, '0');
+      const rs = (remainingSeconds % 60).toString().padStart(2, '0');
+      const timerEl = document.getElementById('exam-timer');
+      timerEl.innerText = `${rm}:${rs}`;
+
+      if (remainingSeconds < 180) {
+        timerEl.classList.add('text-red-600');
+      }
+    }, 1000);
+  }
+
+  startExamTimers();
+
+  function gatherAnswers() {
+    const answers = {};
+    const radios = document.querySelectorAll('input[type="radio"]:checked');
+    radios.forEach(r => {
+      const qId = r.name.replace('q_', '');
+      answers[qId] = parseInt(r.value);
+    });
+    return answers;
+  }
+
+  async function handleExamSubmit(e) {
+    if (e) e.preventDefault();
+    if (!confirm('Are you sure you want to submit your examination now?')) return;
+    submitExamAutomatically();
+  }
+
+  async function submitExamAutomatically() {
+    clearInterval(timerInterval);
+    const btn = document.getElementById('btn-submit-exam');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerText = 'Evaluating Score...';
+    }
+
+    const answers = gatherAnswers();
+    const payload = {
+      answers: answers,
+      time_spent_secs: elapsedSeconds,
+      subject_code: '{{ selected_subject }}'
+    };
+
+    try {
+      const res = await fetch('/api/online-test/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      displayResultsModal(data);
+    } catch(err) {
+      alert('Error recording score: ' + err.message);
+    }
+  }
+
+  function displayResultsModal(data) {
+    document.getElementById('res-score').innerText = `${data.score}/${data.total}`;
+    document.getElementById('res-pct').innerText = `${data.percentage}%`;
+    document.getElementById('res-grade').innerText = data.grade;
+    document.getElementById('res-status').innerText = data.status;
+
+    const em = Math.floor(data.time_spent_secs / 60).toString().padStart(2, '0');
+    const es = (data.time_spent_secs % 60).toString().padStart(2, '0');
+    document.getElementById('res-time').innerText = `${em}m ${es}s`;
+
+    // Render detailed feedback
+    const listEl = document.getElementById('res-feedback-list');
+    listEl.innerHTML = '';
+    data.feedback.forEach((f, idx) => {
+      const box = document.createElement('div');
+      box.className = `p-3 rounded-xl border text-xs space-y-1.5 ${f.is_correct ? 'bg-emerald-50/70 border-emerald-200' : 'bg-rose-50/70 border-rose-200'}`;
+      box.innerHTML = `
+        <div class="flex items-center justify-between font-bold">
+          <span class="${f.is_correct ? 'text-emerald-800' : 'text-rose-800'}">Question ${idx + 1}: ${f.is_correct ? 'Correct (+1 Mark)' : 'Incorrect (0 Marks)'}</span>
+        </div>
+        <p class="font-medium text-slate-800">${f.question}</p>
+        <p class="text-[11px] text-slate-600"><strong class="text-slate-800">Explanation:</strong> ${f.explanation}</p>
+      `;
+      listEl.appendChild(box);
+    });
+
+    document.getElementById('resultsModal').classList.remove('hidden');
+  }
+</script>
+{% endblock %}
