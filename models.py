@@ -195,3 +195,40 @@ class Intervention(db.Model):
             'pre_score': round(self.pre_score, 1),
             'post_score': round(self.post_score, 1)
         }
+
+
+class CourseMaterial(db.Model):
+    __tablename__ = 'course_materials'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    subject_code = db.Column(db.String(20), nullable=False, index=True)
+    subject_name = db.Column(db.String(120), nullable=False)
+    department = db.Column(db.String(50), nullable=False)
+    semester = db.Column(db.Integer, default=5)
+    unit = db.Column(db.String(80), default='All Units')
+    material_type = db.Column(db.String(50), nullable=False) # Lecture Notes, Question Bank, Lab Manual, PYQ, Remedial Worksheet
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, default='')
+    file_format = db.Column(db.String(10), default='PDF')
+    file_size = db.Column(db.String(20), default='2.4 MB')
+    downloads_count = db.Column(db.Integer, default=0)
+    uploaded_by = db.Column(db.String(100), default='Course Faculty')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'subject_code': self.subject_code,
+            'subject_name': self.subject_name,
+            'department': self.department,
+            'semester': self.semester,
+            'unit': self.unit,
+            'material_type': self.material_type,
+            'title': self.title,
+            'description': self.description,
+            'file_format': self.file_format,
+            'file_size': self.file_size,
+            'downloads_count': self.downloads_count,
+            'uploaded_by': self.uploaded_by,
+            'created_at': self.created_at.strftime('%d-%m-%Y') if self.created_at else ''
+        }

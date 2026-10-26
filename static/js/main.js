@@ -116,6 +116,10 @@ async function viewStudent360(studentId) {
     document.getElementById('modal-btn-simulate').onclick = () => {
       window.location.href = `/simulator?student_id=${student.id}`;
     };
+    const matBtn = document.getElementById('modal-btn-materials');
+    if (matBtn) {
+      matBtn.href = `/materials?dept=${encodeURIComponent(student.department)}&type=Remedial+Worksheet`;
+    }
     
     // Render Competency Radar Chart
     renderStudentRadar(student);

@@ -5,11 +5,12 @@ from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, Response
 
 from config import Config
-from models import db, Student, BehaviorMetrics, AcademicRecords, ClusterResult, Intervention
+from models import db, Student, BehaviorMetrics, AcademicRecords, ClusterResult, Intervention, CourseMaterial
 from ml.data_generator import generate_cohort
 from ml.segmentation import BehaviorSegmentationPipeline, CLUSTER_META
 from ml.risk_predictor import calculate_student_risk
 from ml.intervention_engine import recommend_interventions, generate_official_letter_content
+from ml.materials_data import COURSE_MATERIALS_SEED
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -136,6 +137,14 @@ def seed_database_with_cohort(n_students=350):
             db.session.add(intv)
             
     db.session.commit()
+    
+    # Seed course study materials if empty
+    if CourseMaterial.query.count() == 0:
+        for mat in COURSE_MATERIALS_SEED:
+            db.session.add(CourseMaterial(**mat))
+        db.session.commit()
+        print(f"Seeded {len(COURSE_MATERIALS_SEED)} subject course materials.")
+
     print(f"Successfully seeded {len(enriched_df)} students and trained clustering pipeline.")
 
 
@@ -223,6 +232,14 @@ with app.app_context():
     else:
         # Train pipeline on startup
         retrain_database_clusters()
+        
+    # Ensure course materials exist
+    if CourseMaterial.query.count() == 0:
+        print("Seeding course study materials repository...")
+        for mat in COURSE_MATERIALS_SEED:
+            db.session.add(CourseMaterial(**mat))
+        db.session.commit()
+        print(f"Seeded {len(COURSE_MATERIALS_SEED)} subject course materials.")
 
 
 # =========================================================================
@@ -401,6 +418,191 @@ def upload_view():
         'upload.html',
         page_title='College Data Ingestion'
     )
+
+
+@app.route('/materials')
+def materials_view():
+    """Central Academic E-Library & Course Study Materials Repository."""
+    dept = request.args.get('dept', 'All')
+    sem = request.args.get('sem', 'All')
+    m_type = request.args.get('type', 'All')
+    query = request.args.get('q', '').strip()
+
+    q_filter = CourseMaterial.query
+    
+    if dept and dept != 'All':
+        q_filter = q_filter.filter(CourseMaterial.department == dept)
+    if sem and sem != 'All':
+        try:
+            q_filter = q_filter.filter(CourseMaterial.semester == int(sem))
+        except ValueError:
+            pass
+    if m_type and m_type != 'All':
+        q_filter = q_filter.filter(CourseMaterial.material_type == m_type)
+    if query:
+        search_pattern = f"%{query}%"
+        q_filter = q_filter.filter(
+            db.or_(
+                CourseMaterial.subject_code.ilike(search_pattern),
+                CourseMaterial.subject_name.ilike(search_pattern),
+                CourseMaterial.title.ilike(search_pattern),
+                CourseMaterial.unit.ilike(search_pattern),
+                CourseMaterial.description.ilike(search_pattern)
+            )
+        )
+        
+    materials = q_filter.order_by(CourseMaterial.subject_code.asc(), CourseMaterial.id.asc()).all()
+    all_materials = CourseMaterial.query.all()
+    
+    # Calculate stats
+    total_materials = len(all_materials)
+    total_downloads = sum(m.downloads_count for m in all_materials)
+    remedial_count = sum(1 for m in all_materials if m.material_type == 'Remedial Worksheet')
+    departments = sorted(list({m.department for m in all_materials}))
+    material_types = [
+        'Lecture Notes',
+        'Question Bank',
+        'Lab Manual',
+        'PYQ',
+        'Remedial Worksheet'
+    ]
+    semesters = sorted(list({m.semester for m in all_materials}))
+
+    # Dept breakdown count
+    dept_counts = {}
+    for d in departments:
+        dept_counts[d] = sum(1 for m in all_materials if m.department == d)
+
+    return render_template(
+        'materials.html',
+        page_title='Course Study Materials & E-Library',
+        materials=[m.to_dict() for m in materials],
+        total_materials=total_materials,
+        total_downloads=total_downloads,
+        remedial_count=remedial_count,
+        departments=departments,
+        material_types=material_types,
+        semesters=semesters,
+        dept_counts=dept_counts,
+        selected_dept=dept,
+        selected_sem=sem,
+        selected_type=m_type,
+        search_query=query
+    )
+
+
+@app.route('/download-material/<int:material_id>')
+def download_material(material_id):
+    """Simulates real-world academic document download and increments download counter."""
+    material = CourseMaterial.query.get_or_404(material_id)
+    material.downloads_count += 1
+    db.session.commit()
+    
+    file_content = f"""================================================================================
+INSTITUTIONAL CENTRAL E-LIBRARY & COURSE STUDY MATERIALS REPOSITORY
+DEPARTMENT OF {material.department.upper()} | SEMESTER {material.semester}
+================================================================================
+
+SUBJECT CODE : {material.subject_code}
+SUBJECT NAME : {material.subject_name}
+RESOURCE TYPE: {material.material_type.upper()}
+MODULE / UNIT: {material.unit}
+TITLE        : {material.title}
+FACULTY IN-CHARGE: {material.uploaded_by}
+RESOURCE FORMAT  : {material.file_format} ({material.file_size})
+TOTAL DOWNLOADS  : {material.downloads_count}
+DATE ARCHIVED    : {material.created_at.strftime('%Y-%m-%d %H:%M:%S') if material.created_at else 'Active Session'}
+
+--------------------------------------------------------------------------------
+1. SYLLABUS & MODULE SCOPE
+--------------------------------------------------------------------------------
+{material.description}
+
+--------------------------------------------------------------------------------
+2. HIGH-YIELD STUDY GUIDE & EXAM CRITERIA
+--------------------------------------------------------------------------------
+* Part-A (2-Marks): Core definitions, essential formula sheets, schematic pin/block diagrams.
+* Part-B (16-Marks): Algorithmic breakdowns, analytical problem formulations, step-by-step proofs.
+* Practical Competencies: Laboratory code templates, test vectors, and expected timing waveforms.
+* Remedial Warning: Students with CIA average < 50% must complete the designated practice worksheet.
+
+--------------------------------------------------------------------------------
+3. RECOMMENDED REFERENCE TEXTBOOKS & STANDARDS
+--------------------------------------------------------------------------------
+- Standard University Recommended Curriculum Textbooks (Latest Revised Editions).
+- Institutional NPTEL / SWAYAM / Coursera Aligned Video Lecture References.
+- Previous 5-Years Solved Model Examination Papers & Evaluation Rubrics.
+
+================================================================================
+Approved for Academic Distribution | Autonomous Educational Institution
+================================================================================
+"""
+    clean_filename = f"{material.subject_code}_{material.material_type.replace(' ', '_')}_{material.id}.txt"
+    return Response(
+        file_content,
+        mimetype="text/plain",
+        headers={"Content-Disposition": f"attachment;filename={clean_filename}"}
+    )
+
+
+@app.route('/api/materials', methods=['GET'])
+def api_get_materials():
+    """Returns JSON list of materials with optional filters."""
+    dept = request.args.get('dept')
+    m_type = request.args.get('type')
+    sem = request.args.get('sem')
+    
+    q = CourseMaterial.query
+    if dept and dept != 'All':
+        q = q.filter(CourseMaterial.department == dept)
+    if m_type and m_type != 'All':
+        q = q.filter(CourseMaterial.material_type == m_type)
+    if sem and sem != 'All':
+        try:
+            q = q.filter(CourseMaterial.semester == int(sem))
+        except ValueError:
+            pass
+            
+    materials = q.order_by(CourseMaterial.subject_code.asc()).all()
+    return jsonify([m.to_dict() for m in materials])
+
+
+@app.route('/api/materials', methods=['POST'])
+def api_create_material():
+    """Allows faculty to upload/register a new study material."""
+    data = request.get_json() or {}
+    required = ['subject_code', 'subject_name', 'department', 'material_type', 'title']
+    for req in required:
+        if not data.get(req):
+            return jsonify({'error': f"Missing required field: {req}"}), 400
+            
+    try:
+        mat = CourseMaterial(
+            subject_code=data.get('subject_code').strip().upper(),
+            subject_name=data.get('subject_name').strip(),
+            department=data.get('department').strip().upper(),
+            semester=int(data.get('semester', 3)),
+            unit=data.get('unit', 'All Units').strip(),
+            material_type=data.get('material_type', 'Lecture Notes').strip(),
+            title=data.get('title').strip(),
+            description=data.get('description', '').strip(),
+            file_format=data.get('file_format', 'PDF').strip().upper(),
+            file_size=data.get('file_size', '2.5 MB').strip(),
+            uploaded_by=data.get('uploaded_by', 'Academic Department Faculty').strip()
+        )
+        db.session.add(mat)
+        db.session.commit()
+        return jsonify({'message': 'Course material registered successfully!', 'material': mat.to_dict()}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/materials/<int:material_id>')
+def api_get_single_material(material_id):
+    """Returns detailed JSON metadata for a specific course material."""
+    material = CourseMaterial.query.get_or_404(material_id)
+    return jsonify(material.to_dict())
 
 
 # =========================================================================

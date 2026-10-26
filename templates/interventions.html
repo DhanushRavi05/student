@@ -120,9 +120,14 @@
               </select>
             </td>
             <td class="text-right">
-              <button onclick="viewStudent360({{ item.student_id }})" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-semibold text-xs transition border border-slate-700">
-                360° Profile
-              </button>
+              <div class="flex items-center justify-end gap-1.5">
+                <a href="{{ url_for('materials_view', dept=item.department, type='Remedial Worksheet') }}" class="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 rounded-lg font-semibold text-xs transition border border-rose-500/30 flex items-center gap-1" title="Access Remedial Study Materials">
+                  <span>📚</span> Remedial
+                </a>
+                <button onclick="viewStudent360({{ item.student_id }})" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-semibold text-xs transition border border-slate-700">
+                  360° Profile
+                </button>
+              </div>
             </td>
           </tr>
           {% endfor %}
