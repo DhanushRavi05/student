@@ -41,18 +41,24 @@
     
     <!-- Left: Live WebCam Feed Container -->
     <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
-      <div class="flex items-center justify-between">
+      <div class="flex flex-wrap items-center justify-between gap-2">
         <div class="flex items-center gap-2">
           <span class="text-xs font-bold text-slate-800 uppercase tracking-wider">Live Video Stream</span>
           <span id="cam-status" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
             Connecting Camera...
           </span>
+          <span id="device-type-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+            Camera Active
+          </span>
         </div>
-        <div class="flex items-center gap-2">
-          <button onclick="toggleCamera()" id="btn-cam" class="px-3 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200">
-            📹 Pause Cam
+        <div class="flex items-center gap-1.5">
+          <button onclick="flipCamera()" id="btn-flip" title="Switch between Front and Back camera on mobile" class="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold border border-blue-200 flex items-center gap-1">
+            <span>🔄</span> Flip Cam
           </button>
-          <button onclick="toggleMic()" id="btn-mic" class="px-3 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200">
+          <button onclick="toggleCamera()" id="btn-cam" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200">
+            📹 Pause
+          </button>
+          <button onclick="toggleMic()" id="btn-mic" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200">
             🎙️ Mute
           </button>
         </div>
@@ -145,23 +151,64 @@
   let videoStream = null;
   let sessionSeconds = 0;
   let sessionInterval = null;
+  let currentFacing = 'user'; // 'user' for laptop webcam/mobile selfie, 'environment' for mobile rear
+
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
 
   async function initWebcam() {
     const videoEl = document.getElementById('webcam-feed');
     const statusEl = document.getElementById('cam-status');
+    const devBadge = document.getElementById('device-type-badge');
+
+    if (devBadge) {
+      if (isMobile) {
+        devBadge.innerText = currentFacing === 'user' ? '📱 Mobile Front Camera' : '📱 Mobile Rear Camera';
+      } else {
+        devBadge.innerText = '💻 Laptop WebCam Active';
+      }
+    }
+
+    const constraints = {
+      video: {
+        facingMode: currentFacing,
+        width: { ideal: isMobile ? 720 : 1280 },
+        height: { ideal: isMobile ? 1280 : 720 }
+      },
+      audio: true
+    };
 
     try {
-      videoStream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 1280, height: 720 },
-        audio: true
-      });
+      if (videoStream) {
+        videoStream.getTracks().forEach(t => t.stop());
+      }
+      videoStream = await navigator.mediaDevices.getUserMedia(constraints);
       videoEl.srcObject = videoStream;
+      videoEl.setAttribute('playsinline', 'true');
+      videoEl.setAttribute('webkit-playsinline', 'true');
+      videoEl.muted = true;
+      await videoEl.play();
+
       statusEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200';
-      statusEl.innerText = '🟢 Camera Monitored & Live';
+      statusEl.innerText = isMobile ? '🟢 Mobile Camera Live' : '🟢 Laptop WebCam Live';
     } catch (err) {
-      statusEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200';
-      statusEl.innerText = '📷 Camera Preview Mode Active';
+      try {
+        videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        videoEl.srcObject = videoStream;
+        videoEl.setAttribute('playsinline', 'true');
+        videoEl.muted = true;
+        await videoEl.play();
+        statusEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200';
+        statusEl.innerText = '🟢 Camera Monitored & Live';
+      } catch (err2) {
+        statusEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200';
+        statusEl.innerText = '📷 Camera Preview Mode Active';
+      }
     }
+  }
+
+  async function flipCamera() {
+    currentFacing = (currentFacing === 'user') ? 'environment' : 'user';
+    await initWebcam();
   }
 
   // Stopwatch
@@ -183,7 +230,7 @@
       const track = videoStream.getVideoTracks()[0];
       if (track) {
         track.enabled = !track.enabled;
-        document.getElementById('btn-cam').innerText = track.enabled ? '📹 Pause Cam' : '📹 Resume Cam';
+        document.getElementById('btn-cam').innerText = track.enabled ? '📹 Pause' : '📹 Resume';
       }
     }
   }

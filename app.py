@@ -350,8 +350,19 @@ def logout():
 # =========================================================================
 
 @app.route('/')
+def root():
+    """Immediately routes to the Student & Staff Login Portal on initial load."""
+    if 'user_role' in session:
+        return redirect(url_for('dashboard'))
+    return redirect(url_for('login'))
+
+
+@app.route('/dashboard')
 def dashboard():
     """Executive Dashboard with Institutional KPIs, Risk breakdown, and Priority roster."""
+    if 'user_role' not in session:
+        return redirect(url_for('login'))
+        
     students = Student.query.all()
     total_students = len(students)
     

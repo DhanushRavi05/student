@@ -39,23 +39,31 @@
   <!-- Toast Alerts Container -->
   <div id="toast-container" class="fixed top-5 right-6 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"></div>
 
-  <!-- ==================== MODERN CLEAN WHITE LEFT SIDEBAR ==================== -->
-  <aside class="w-64 sm:w-72 bg-white border-r border-slate-200 flex flex-col justify-between flex-shrink-0 z-30 shadow-sm">
+  <!-- Mobile Drawer Backdrop Overlay -->
+  <div id="mobile-sidebar-backdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-40 hidden md:hidden transition-opacity"></div>
+
+  <!-- ==================== RESPONSIVE SIDEBAR (DRAWER ON MOBILE, DOCKED ON DESKTOP) ==================== -->
+  <aside id="main-sidebar" class="fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-slate-200 flex flex-col justify-between flex-shrink-0 shadow-2xl md:shadow-sm transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out">
     
     <!-- Top Brand & Core Meta -->
     <div class="overflow-y-auto">
       <!-- Brand Header -->
-      <div class="px-5 py-4 border-b border-slate-200 flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 p-0.5 shadow-md flex-shrink-0 flex items-center justify-center text-white font-extrabold text-lg">
-          E
-        </div>
-        <div>
-          <div class="flex items-center gap-1.5">
-            <h1 class="text-base font-extrabold tracking-tight text-slate-900">EduTrack <span class="text-blue-600">ERP</span></h1>
-            <span class="text-[9px] px-1.5 py-0.5 font-bold uppercase rounded bg-blue-50 text-blue-700 border border-blue-200">v2.4</span>
+      <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 p-0.5 shadow-md flex-shrink-0 flex items-center justify-center text-white font-extrabold text-lg">
+            E
           </div>
-          <p class="text-[11px] text-slate-500 font-medium">Autonomous Engineering Portal</p>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h1 class="text-base font-extrabold tracking-tight text-slate-900">EduTrack <span class="text-blue-600">ERP</span></h1>
+              <span class="text-[9px] px-1.5 py-0.5 font-bold uppercase rounded bg-blue-50 text-blue-700 border border-blue-200">v2.4</span>
+            </div>
+            <p class="text-[11px] text-slate-500 font-medium">Autonomous Engineering Portal</p>
+          </div>
         </div>
+
+        <!-- Mobile Close Drawer Button -->
+        <button onclick="toggleMobileSidebar()" class="p-1 rounded-lg text-slate-400 hover:text-slate-700 md:hidden text-lg">✕</button>
       </div>
 
       <!-- User Role Indicator Pill -->
@@ -212,13 +220,18 @@
   <div class="flex-1 flex flex-col h-screen overflow-hidden">
     
     <!-- Top Fluid Command Header -->
-    <header class="h-16 px-6 sm:px-8 border-b border-slate-200 bg-white flex items-center justify-between z-20 flex-shrink-0 shadow-sm">
-      <div class="flex items-center gap-3">
-        <h2 class="text-base font-bold text-slate-900 tracking-tight">
+    <header class="h-16 px-4 sm:px-6 md:px-8 border-b border-slate-200 bg-white flex items-center justify-between z-20 flex-shrink-0 shadow-sm">
+      <div class="flex items-center gap-2.5 sm:gap-3">
+        <!-- Mobile Menu Toggle Button -->
+        <button onclick="toggleMobileSidebar()" class="p-2 -ml-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 md:hidden flex items-center justify-center transition" title="Toggle Navigation Menu">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        </button>
+
+        <h2 class="text-sm sm:text-base font-bold text-slate-900 tracking-tight truncate max-w-[140px] sm:max-w-none">
           {{ page_title }}
         </h2>
-        <span class="text-xs text-slate-300 hidden sm:inline-block">/</span>
-        <span class="text-xs text-slate-500 hidden sm:inline-block">Autonomous Institution Academic Portal</span>
+        <span class="text-xs text-slate-300 hidden md:inline-block">/</span>
+        <span class="text-xs text-slate-500 hidden md:inline-block">Autonomous Institution Academic Portal</span>
       </div>
 
       <div class="flex items-center gap-3">
@@ -481,6 +494,21 @@
 
   <!-- Core JavaScript -->
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  <script>
+    function toggleMobileSidebar() {
+      const sidebar = document.getElementById('main-sidebar');
+      const backdrop = document.getElementById('mobile-sidebar-backdrop');
+      if (!sidebar) return;
+      const isHidden = sidebar.classList.contains('-translate-x-full');
+      if (isHidden) {
+        sidebar.classList.remove('-translate-x-full');
+        if (backdrop) backdrop.classList.remove('hidden');
+      } else {
+        sidebar.classList.add('-translate-x-full');
+        if (backdrop) backdrop.classList.add('hidden');
+      }
+    }
+  </script>
   {% block scripts %}{% endblock %}
 
 </body>
