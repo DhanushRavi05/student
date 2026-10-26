@@ -52,7 +52,16 @@
           </span>
         </div>
         <div class="flex items-center gap-1.5">
-          <button onclick="flipCamera()" id="btn-flip" title="Switch between Front and Back camera on mobile" class="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold border border-blue-200 flex items-center gap-1">
+          <!-- Laptop Camera Selector Dropdown (Shown on Desktop/Laptop) -->
+          <div id="camera-selector-container" class="hidden items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 shadow-2xs">
+            <span class="text-[11px] text-slate-500 font-bold">📷 Cam:</span>
+            <select id="camera-select" onchange="onCameraSelected(this.value)" class="text-xs font-semibold bg-transparent text-slate-800 focus:outline-none cursor-pointer max-w-[160px] sm:max-w-[200px] truncate">
+              <option value="">Detecting WebCam...</option>
+            </select>
+          </div>
+
+          <!-- Flip Cam Button (Only on Mobile) -->
+          <button onclick="flipCamera()" id="btn-flip" title="Switch between Front and Back camera on mobile" class="hidden px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold border border-blue-200 items-center gap-1">
             <span>🔄</span> Flip Cam
           </button>
           <button onclick="toggleCamera()" id="btn-cam" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200">
@@ -153,57 +162,168 @@
   let sessionInterval = null;
   let currentFacing = 'user'; // 'user' for laptop webcam/mobile selfie, 'environment' for mobile rear
 
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-  async function initWebcam() {
+  function isVirtualOrPhone(label) {
+    if (!label) return false;
+    return /link to windows|phone link|v2428|virtual|obs|droidcam|iriun|ipcam|snap camera/i.test(label);
+  }
+
+  function isLaptopHardwareCam(label) {
+    if (!label) return false;
+    return /integrated|webcam|internal|built-in|facetime|hd camera|camera|realtek|chicony|sunplus|dell|hp|lenovo/i.test(label);
+  }
+
+  async function initWebcam(targetDeviceId = null) {
     const videoEl = document.getElementById('webcam-feed');
     const statusEl = document.getElementById('cam-status');
     const devBadge = document.getElementById('device-type-badge');
+    const flipBtn = document.getElementById('btn-flip');
+    const camSelectContainer = document.getElementById('camera-selector-container');
+    const camSelect = document.getElementById('camera-select');
 
-    if (devBadge) {
-      if (isMobile) {
+    // Display device-appropriate controls
+    if (isMobile) {
+      flipBtn.classList.remove('hidden');
+      flipBtn.classList.add('inline-flex');
+      camSelectContainer.classList.add('hidden');
+      if (devBadge) {
         devBadge.innerText = currentFacing === 'user' ? '📱 Mobile Front Camera' : '📱 Mobile Rear Camera';
-      } else {
+      }
+      videoEl.classList.toggle('-scale-x-100', currentFacing === 'user');
+    } else {
+      flipBtn.classList.add('hidden');
+      camSelectContainer.classList.remove('hidden');
+      camSelectContainer.classList.add('inline-flex');
+      videoEl.classList.add('-scale-x-100');
+      if (devBadge) {
         devBadge.innerText = '💻 Laptop WebCam Active';
       }
     }
 
-    const constraints = {
-      video: {
+    // Determine constraints
+    let videoConstraints = {};
+    if (isMobile) {
+      videoConstraints = {
         facingMode: currentFacing,
-        width: { ideal: isMobile ? 720 : 1280 },
-        height: { ideal: isMobile ? 1280 : 720 }
-      },
-      audio: true
-    };
+        width: { ideal: 720 },
+        height: { ideal: 1280 }
+      };
+    } else {
+      // Laptop: Check if user already picked a preferred hardware camera
+      const savedDevId = targetDeviceId || localStorage.getItem('preferred_cam_id');
+      if (savedDevId) {
+        videoConstraints = {
+          deviceId: { exact: savedDevId },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        };
+      } else {
+        videoConstraints = {
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        };
+      }
+    }
 
     try {
       if (videoStream) {
         videoStream.getTracks().forEach(t => t.stop());
       }
-      videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+      try {
+        videoStream = await navigator.mediaDevices.getUserMedia({
+          video: videoConstraints,
+          audio: true
+        });
+      } catch (e1) {
+        // Fallback without audio
+        videoStream = await navigator.mediaDevices.getUserMedia({
+          video: videoConstraints,
+          audio: false
+        });
+      }
+
       videoEl.srcObject = videoStream;
       videoEl.setAttribute('playsinline', 'true');
       videoEl.setAttribute('webkit-playsinline', 'true');
       videoEl.muted = true;
       await videoEl.play();
 
-      statusEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200';
-      statusEl.innerText = isMobile ? '🟢 Mobile Camera Live' : '🟢 Laptop WebCam Live';
-    } catch (err) {
-      try {
-        videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-        videoEl.srcObject = videoStream;
-        videoEl.setAttribute('playsinline', 'true');
-        videoEl.muted = true;
-        await videoEl.play();
+      // Enumerate available video inputs now that permission has been granted
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoInputs = devices.filter(d => d.kind === 'videoinput');
+
+      const activeTrack = videoStream.getVideoTracks()[0];
+      const activeLabel = activeTrack ? activeTrack.label : '';
+
+      if (!isMobile) {
+        // Populate camera dropdown
+        if (camSelect && videoInputs.length > 0) {
+          camSelect.innerHTML = '';
+          videoInputs.forEach(cam => {
+            const opt = document.createElement('option');
+            opt.value = cam.deviceId;
+            let display = cam.label || `Camera ${cam.deviceId.slice(0, 5)}`;
+            if (isLaptopHardwareCam(cam.label)) {
+              display = '💻 ' + display + ' (Laptop)';
+            } else if (isVirtualOrPhone(cam.label)) {
+              display = '📱 ' + display + ' (Virtual/Phone)';
+            }
+            opt.text = display;
+            if (cam.label === activeLabel || (activeTrack && activeTrack.getSettings && activeTrack.getSettings().deviceId === cam.deviceId)) {
+              opt.selected = true;
+            }
+            camSelect.appendChild(opt);
+          });
+        }
+
+        // CRITICAL: If Windows accidentally picked a virtual/phone camera (e.g. V2428 / Link to Windows)
+        // and user did not explicitly choose it:
+        if (isVirtualOrPhone(activeLabel) && !targetDeviceId) {
+          // Find the genuine integrated laptop hardware webcam
+          const genuineLaptopCam = videoInputs.find(d => !isVirtualOrPhone(d.label) && isLaptopHardwareCam(d.label))
+                                 || videoInputs.find(d => !isVirtualOrPhone(d.label));
+          if (genuineLaptopCam) {
+            console.warn('Detected virtual phone camera. Auto-switching to Laptop WebCam:', genuineLaptopCam.label);
+            localStorage.setItem('preferred_cam_id', genuineLaptopCam.deviceId);
+            if (camSelect) camSelect.value = genuineLaptopCam.deviceId;
+            return await initWebcam(genuineLaptopCam.deviceId);
+          }
+        }
+
+        // Save active working non-virtual camera ID
+        if (activeLabel && !isVirtualOrPhone(activeLabel)) {
+          const currentDevId = (activeTrack && activeTrack.getSettings && activeTrack.getSettings().deviceId) || (camSelect ? camSelect.value : null);
+          if (currentDevId) {
+            localStorage.setItem('preferred_cam_id', currentDevId);
+          }
+        }
+
         statusEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200';
-        statusEl.innerText = '🟢 Camera Monitored & Live';
-      } catch (err2) {
-        statusEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200';
-        statusEl.innerText = '📷 Camera Preview Mode Active';
+        statusEl.innerText = activeLabel ? `🟢 ${activeLabel.split('(')[0].trim()} Live` : '🟢 Laptop WebCam Live';
+        if (devBadge) devBadge.innerText = '💻 Laptop WebCam Active';
+      } else {
+        statusEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200';
+        statusEl.innerText = '🟢 Mobile Camera Live';
       }
+
+    } catch (err) {
+      console.error('Camera stream error:', err);
+      // If exact device failed, clear preference and retry generic
+      if (targetDeviceId) {
+        localStorage.removeItem('preferred_cam_id');
+        return await initWebcam(null);
+      }
+      statusEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200';
+      statusEl.innerText = '📷 Camera Preview Mode Active';
     }
+  }
+
+  async function onCameraSelected(deviceId) {
+    if (!deviceId) return;
+    localStorage.setItem('preferred_cam_id', deviceId);
+    await initWebcam(deviceId);
   }
 
   async function flipCamera() {
